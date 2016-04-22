@@ -72,25 +72,106 @@ class inet(object):
 				else:
 					theDict[self.INET_NETWORK]=words[0]
 
+	# del the gateway according to database
+	# Ret : False - not a root
+	#       True - do as a root
+	def delDefaultGW(self):
+		if not self._root:
+			print "Need to be a root for the task"
+			return False
+		else:
+			for intf in self._intfDict:
+				item = self._intfDict[intf]
+				if item[self.INET_ROUTE]:
+					print "Deleting "+item[self.INET_ROUTE]
+					os.system('route del default gw '+item[self.INET_ROUTE])
+		return True
 
-	#def getRoute(self):
-	#	return copy.deepcopy(self._d4GWDict)
-	#route add -net 10.3.0.0 netmask 255.255.254.0 gw 10.3.57.254
-	#route del -net 10.3.0.0 netmask 255.255.254.0
 
-	#get information
+	# Get default gateway from database by given network
+	# In  : network - the a.b.c.d network
+	# Ret : '' - not in database
+	#       otherwise - of gateway string
+	def _getDefaultGW(self, network):
+		defaultGW={
+			  '10.3.56.0' : '10.3.57.254'
+			, '192.168.42.0' : '192.168.42.129'
+		}
+		if network in defaultGW:
+			return defaultGW[network]
+		return ''
+
+
+	# add a gateway according to database
+	# In  : intf - interface name
+	#       gw - gateway, if not provided, xx.xx.xx.254 used
+	# Ret : False - not a root or invalid argument
+	#       True - do as a root
+	def addDefaultGW(self, intf, gw=''):
+		if not self._root:
+			print "Need to be a root for the task"
+		elif not intf in self._intfDict:
+			print "Invalid interface "+intf
+		else:
+			item = self._intfDict[intf]
+			mask = item[self.INET_MASK]
+			if not mask:
+				print "Fail to get network mask"
+				return False
+			#
+			#determine gw
+			#
+			if not gw:
+				gw = self._getDefaultGW(item[self.INET_NETWORK])
+			if not gw:
+				ips=item[self.INET_NETWORK].split('.')
+				masks=mask.split('.')
+				for i in range(0, 4):
+					thisIP=int(ips[i])&int(masks[i])
+					if not gw:
+						gw=str(thisIP)
+					elif not thisIP:
+						gw+=".0"
+					else:
+						gw+="."+str(thisIP)
+			item[self.INET_ROUTE]=gw
+			print "Adding GW "+item[self.INET_ROUTE]
+			#	os.system('route del default gw '+item[self.INET_ROUTE])
+			return True
+		return False
+
+
+	# Return interface dictionary and optionally print the message
+	# In  : prnt - whether to print the message
+	# Ret : a dict object w/ keys of interface name
 	def getInfo(self, prnt=False):
 		ignorePrefix=('lo', 'virbr', 'vmnet')
-		for intf in self._intfDict:
-			item = self._intfDict[intf]
-			print item[self.INET_INTF],
-			if item[self.INET_ROUTE]:
-				print item[self.INET_ROUTE],
-			else:
-				print '*', 
-			print item[self.INET_NETWORK], item[self.INET_MASK]
+		if prnt:
+			for intf in self._intfDict:
+				item = self._intfDict[intf]
+				print item[self.INET_INTF],
+				if item[self.INET_ROUTE]:
+					print item[self.INET_ROUTE],
+				else:
+					print '*', 
+				print item[self.INET_NETWORK], item[self.INET_MASK]
+		return copy.deepcopy(self._intfDict)
 
 
-obj=inet()
-obj.getInfo()
+#main
+if __name__ == '__main__':
+	def check_param():
+        	parser = argparse.ArgumentParser()
+	        parser.add_argument('-g', action='store', dest='newGW', default='',
+        	        help='set new gateway... should be done by root')
+	        arg=parser.parse_args()
+        	return arg
+
+	arg=check_param()
+	obj=inet()
+	if arg.newGW:
+		obj.getInfo()
+		obj.addDefaultGW(arg.newGW)
+	else:
+		obj.getInfo(True)
 
