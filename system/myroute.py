@@ -136,7 +136,7 @@ class inet(object):
 						gw+="."+str(thisIP)
 			item[self.INET_ROUTE]=gw
 			print "Adding GW "+item[self.INET_ROUTE]
-			#	os.system('route del default gw '+item[self.INET_ROUTE])
+			os.system('route add default gw '+item[self.INET_ROUTE])
 			return True
 		return False
 
@@ -163,15 +163,21 @@ if __name__ == '__main__':
 	def check_param():
         	parser = argparse.ArgumentParser()
 	        parser.add_argument('-g', action='store', dest='newGW', default='',
-        	        help='set new gateway... should be done by root')
+        	        help='set new <interfacce>[:gateway]... should be done by root')
 	        arg=parser.parse_args()
         	return arg
 
 	arg=check_param()
 	obj=inet()
 	if arg.newGW:
-		obj.getInfo()
-		obj.addDefaultGW(arg.newGW)
+		#obj.getInfo()
+		words=arg.newGW.split(':')
+		if not obj.delDefaultGW():
+			sys.exit()
+		if len(words)>=2:
+			obj.addDefaultGW(words[0], words[1])
+		else:
+			obj.addDefaultGW(words[0])
 	else:
 		obj.getInfo(True)
 
