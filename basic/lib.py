@@ -2,7 +2,7 @@
 #
 import subprocess, os, sys, re, argparse
 
-class lib(object):
+class manuLib(object):
 	OS_WINDOWS="WINDOWS"
 	OS_MAC="MAC"
 	OS_LINUX="LINUX"
@@ -46,7 +46,7 @@ class lib(object):
 # main
 #
 if __name__ == '__main__':
-	mylib = lib()
+	mylib = manuLib()
 	print mylib.getOS()
 	for line in mylib.cmdOutput('ls -l'):
 		words=line.split()
