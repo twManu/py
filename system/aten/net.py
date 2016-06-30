@@ -51,16 +51,27 @@ class routing(manuLib):
 					print line
 		return False
 
-
-	def intRoute(self, onoff):
+	# add or delete rules routing internally
+	# In  : onoff - True : add
+	#               False: del
+	def intRoute(self, onoff, gw=INT_GW):
 		if not self._intf:
 			return
-		if onoff:
-			for rule in INT_NET:
-				cmd = rule['net']+"/"+str(rule['mskLen'])+" dev "+self._intf+" via "+INT_GW
-				print "setting "+cmd
-				#os.system("ip route add "+cmd)
-
+		for rule in INT_NET:
+			ipMsk=self._ruleStr(rule)
+			if onoff:                #add
+				if self.ruleExisting(rule):
+					print ipMsk+" already exists ...ignore"
+					continue
+				cmd = "ip route add "+ipMsk
+				cmd += " dev "+self._intf+" via "+gw
+				os.system(cmd)
+			else:
+				if not self.ruleExisting(rule):
+					print ipMsk+" not in routing table"
+					continue
+				cmd = "ip route del "+ipMsk
+				os.system(cmd)
 
 
 #
@@ -89,6 +100,7 @@ if __name__ == '__main__':
 	if not route.isRoot():
 		print "Need to be a root"
 		sys.exit(1)
+	#do according to internal table
 	if arg.internal_on:
-		print 'do subnet config'
+		route.intRoute(1==arg.internal_on)
 
