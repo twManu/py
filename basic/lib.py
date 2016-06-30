@@ -13,6 +13,7 @@ class manuLib(object):
 	#
 	def __init__(self):
 		self._os=sys.platform
+		self._isRoot=False
 		if self._os == 'win32':
 			self._os=self.OS_WINDOWS
 		elif self._os == 'darwin':
@@ -21,6 +22,9 @@ class manuLib(object):
 			self._os=self.OS_LINUX
 		else:
 			self._os=self.OS_UNKNOWN
+		#update _isRoot if necessary
+		self._checkRoot()
+
 	#
 	# Ret: OS_XXX
 	#
@@ -41,6 +45,25 @@ class manuLib(object):
 	def cmdOutput(self, cmd):
 		p=subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
 		return iter(p.stdout.readline, '')
+
+
+	# Check if user has root privilege under Mac or Linux
+	# In  : self._os
+	# Out : self._isRoot
+	#
+	def _checkRoot(self):
+		if self._os==self.OS_MAC or self._os==self.OS_LINUX:
+			for line in self.cmdOutput('id'):
+				if re.search('(root)', line):
+					self._isRoot=True
+
+
+	# check if a root
+	# Ret : True - user has root privileged
+	#       False - otherwise
+	def isRoot(self):
+		return self._isRoot
+#end manuLib
 
 #
 # main
