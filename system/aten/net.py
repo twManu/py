@@ -9,22 +9,61 @@ from lib import manuLib
 INT_INTF='enp3s0'
 INT_GW='10.3.57.254'
 #tuple of dictionary
+#the rule to be added when internal enabled
 INT_NET=(
-		  {
-			'net': '10.0.0.0',
-			'mskLen': 8
-		}
-		, {
-			'net': '172.0.0.0',
-			'mskLen': 8
-		}
+	  {
+		'net': '10.0.0.0',
+		'mskLen': 8
+	}
+	, {
+		'net': '172.0.0.0',
+		'mskLen': 8
+	}
 )
 
+#the rule to be deleted when internal enabled
+INT_DEL_NET=(
+	  {
+		'net': '10.0.1.24',
+		'Iface': 'enp3s0'
+		'cmd' : "route del 10.0.1.24 dev enp3s0"
+	}
+	, {
+		'net': '10.3.56.0',
+		'Iface': 'enp3s0'
+		'cmd' : "ip croute del 10.3.56.0/23"
+	}
+)
+
+
 class routing(manuLib):
+	# colloect 'route -n' into a dictionary
+	# Ret : list of dictionary
+	def _curRoute(self):
+		routeList=[]
+		start=False
+		for line in self.cmdOutput('route -n'):
+			theDict={}
+			#skip processing until 'Destination' found
+			if not start:
+				if re.match('Destination ', line):
+					start=True
+				continue
+			words=line.split()
+			#Destination Gateway Genmask Flags Metric Ref Use Iface
+			theDict['Destination']=words[0].strip()
+			theDict['Gateway']=words[1].strip()
+			theDict['Genmask']=words[2].strip()
+			theDict['Iface']=words[7].strip()
+			routeList.append(theDict)
+		return routeList
+	
+
 	# In  : intf - net device
 	def __init__(self, intf=None):
 		super(routing, self).__init__()
 		self._intf=intf
+		self._curRouteList=self._curRoute()
 
 	# form "a.b.c.d/mask-length" from rule dictionary
 	# Ret : "a.b.c.d/mask-length"
@@ -35,21 +74,14 @@ class routing(manuLib):
 	# Check if the rule netRule already exists
 	#
 	# In  : netRule is a net/mskLen dictionary describing the rule
-	#       None - means print routing rules
 	# Ret : True - existing
 	#       False - otherwise
-	def _ruleExisting(self, netRule=None):
-		cmpStr=""
-		if netRule: cmpStr=self._ruleStr(netRule)
+	def _ruleExisting(self, netRule):
+		cmpStr=self._ruleStr(netRule)
 		for curRule in self.cmdOutput('ip route'):
-			if cmpStr:
-				word0=curRule.split()[0]
-				if cmpStr==word0:
-					return True
-			else:
-				line=curRule.strip()
-				if line:
-					print line
+			word0=curRule.split()[0]
+			if cmpStr==word0:
+				return True
 		return False
 
 
@@ -86,6 +118,15 @@ class routing(manuLib):
 					continue
 				cmd = "ip route del "+ipMsk
 			os.system(cmd)
+		for rule in self._curRouteList:
+			if '0.0.0.0' == rule['Destination'] and\
+			   INT_GW == rule['Gateway']:
+				os.system('route del default gw '+INT_GW)
+			for del_rule in INT_DEL_NET:
+				if del_rule['net'] == rule['Destination'] and\
+				   del_rule['Iface'] == rule['Iface']:
+					os.system(del_rule['cmd'])
+					
 
 
 	# delete a routing rule
@@ -99,8 +140,8 @@ class routing(manuLib):
 
 	# print all routing info	
 	def showRoute(self):	
-		self._ruleExisting()
-		
+		for rr in self._curRouteList:
+			print rr['Destination'], rr['Gateway'], rr['Genmask'], rr['Iface']
 
 
 #
