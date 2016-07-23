@@ -1,5 +1,7 @@
 #!/usr/bin/python
 #
+# probably you need to do
+# 	sys.path.append(../basic)
 import subprocess, os, sys, re, argparse
 
 class manuLib(object):
