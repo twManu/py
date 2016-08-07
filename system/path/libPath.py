@@ -2,8 +2,10 @@
 #
 
 import os, sys, re, argparse, glob
+sys.path.append('../../basic')
+from lib import manuLib
 
-class path(object):
+class cPath(manuLib):
 	TYPE_NONE=0                    #invalid
 	TYPE_LINK=1
 	TYPE_FILE=2
@@ -11,16 +13,17 @@ class path(object):
 
 	# In  : path - if not provided, use current directory
 	# Out : _parentDir, _pathName, _type
-	def __init__(self, path=""):
+	def __init__(self, thePath=""):
+		super(cPath, self).__init__()
 		self._pathName=""                #the key, full path
 		self._parentName=""              #full path
 		self._type=self.TYPE_NONE
 		#normalize
-		if path:
-			if re.match(r"~", path):
-				path=os.path.expanduser(path)
-			if os.path.exists(path):
-				self._pathName=os.path.abspath(path)
+		if thePath:
+			if re.match(r"~", thePath):
+				thePath=os.path.expanduser(thePath)
+			if os.path.exists(thePath):
+				self._pathName=os.path.abspath(thePath)
 		else:
 			self._pathName=os.getcwd()
 		self._type = self.getType(self._pathName)
@@ -65,7 +68,7 @@ class path(object):
 	def subExist(self, subPath, theType):
 		#remove leading '/'
 		subPath=re.sub(r'^/', "", subPath)
-		pathObj=path(self._pathName+'/'+subPath)
+		pathObj=cPath(self._pathName+'/'+subPath)
 		if pathObj.getPath() and theType == pathObj.getType():
 			return True
 		return False	
@@ -86,20 +89,20 @@ if __name__ == '__main__':
 	#check path, type, and parent
 	testPath=("", "/", ".", "..", "/etc/vtrgb", "~/.bashrc")
 	for pp in testPath:
-		thisDir=path(pp)
+		thisDir=cPath(pp)
 		print "Path="+thisDir.getPath()+", type="+thisDir.getTypeName(thisDir.getType()),
 		print ", Parent="+thisDir.getParent()
 	#check subdir existence
 	subDir=("init", "/init", "rc.local")
-	thisDir=path('/etc')
+	thisDir=cPath('/etc')
 	for ss in subDir:
-		if thisDir.subExist(ss, path.TYPE_DIR):
+		if thisDir.subExist(ss, cPath.TYPE_DIR):
 			print "Dir /etc "+ss+" exists"
 		else:
 			print "Dir /etc "+ss+" doesn't exist"
 	#check subfile existence
 	for ff in subDir:
-		if thisDir.subExist(ff, path.TYPE_FILE):
+		if thisDir.subExist(ff, cPath.TYPE_FILE):
 			print "File /etc "+ff+" exists"
 		else:
 			print "File /etc "+ff+" doesn't exist"
