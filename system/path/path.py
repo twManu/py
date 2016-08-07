@@ -61,14 +61,47 @@ class path(object):
 	def getParent(self):
 		return self._parentName
 
+	# Check if the path presents in subirectory
+	def subExist(self, subPath, theType):
+		#remove leading '/'
+		subPath=re.sub(r'^/', "", subPath)
+		pathObj=path(self._pathName+'/'+subPath)
+		if pathObj.getPath() and theType == pathObj.getType():
+			return True
+		return False	
+
+	# Return list of sub files
+	def getSubFiles(self):
+		fList=[]
+		for dirPath, dirNames, fileNames in os.walk(self._pathName):
+			subPath=re.sub(self._pathName, "", dirPath)
+			for f in fileNames:
+				fList.append(os.path.join(subPath, f))
+		return fList
 
 #
 # main
 #
 if __name__ == '__main__':
+	#check path, type, and parent
 	testPath=("", "/", ".", "..", "/etc/vtrgb", "~/.bashrc")
-
 	for pp in testPath:
 		thisDir=path(pp)
 		print "Path="+thisDir.getPath()+", type="+thisDir.getTypeName(thisDir.getType()),
-		print "Parent="+thisDir.getParent()
+		print ", Parent="+thisDir.getParent()
+	#check subdir existence
+	subDir=("init", "/init", "rc.local")
+	thisDir=path('/etc')
+	for ss in subDir:
+		if thisDir.subExist(ss, path.TYPE_DIR):
+			print "Dir /etc "+ss+" exists"
+		else:
+			print "Dir /etc "+ss+" doesn't exist"
+	#check subfile existence
+	for ff in subDir:
+		if thisDir.subExist(ff, path.TYPE_FILE):
+			print "File /etc "+ff+" exists"
+		else:
+			print "File /etc "+ff+" doesn't exist"
+	for ff in thisDir.getSubFiles():
+		print ff
