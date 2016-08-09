@@ -42,7 +42,9 @@ class cDiff(cPath):
 				print "  Match at root"
 				break
 			self._linkAppend += "../"
-		
+		self._linkAppend += os.path.basename(self._pathName)
+		self._DBG("append set as: "+self._linkAppend)
+			
 	def getLinkAppend(self):
 		return self._linkAppend
 
@@ -62,13 +64,42 @@ class cDiff(cPath):
 			fname2=oPath+ff
 			if os.path.isfile(fname2):
 				self._DBG(' other', False)
-				if os.path.getsize(fname2) == fsize:
+				if os.path.getsize(fname2) >=4000:
 					totalSize += fsize
 					self._DBG(fsize)
+					#print "ln -s "+self._linkAppend+ff+
 		self._DBG("")
 		self._DBG(totalSize)
-			
-			
+
+
+
+	def _findSo2(self):
+		totalSize=0
+		oPath=self._otherPathObj.getPath()
+		#find from src dir
+		for dirPath, dirNames, fileNames in os.walk(self._pathName):
+			subPath=re.sub(self._pathName, "", dirPath)
+			#/var/lib -> var/lib
+			nSubPath=re.sub(r'^/', "", subPath)
+			#add prepend owning to subpath
+			words=subPath.split('/')
+			prepend=""
+			for section in subPath.split('/'):
+				if section.strip(): prepend += "../"
+			prepend += self._linkAppend+subPath
+			for ff in fileNames:
+				fpath=oPath+subPath+'/'+ff                 #other file
+				if os.path.islink(fpath): continue
+				if os.path.isfile(fpath):
+					fsize = os.path.getsize(fpath)
+					if fsize < 4000: continue
+					os.system("rm -f "+fpath)
+					cmd = "cd "+oPath+subPath+"; ln -s "+prepend+"/"+ff+" "+ff
+					os.system(cmd)
+					self._DBG("pushd "+oPath+subPath)
+					self._DBG("ln -s "+prepend+"/"+ff+" "+ff)
+					totalSize += fsize
+		self._DBG(str(totalSize))
 
 	def _findSo(self, subPath):
 		oPath=self._otherPathObj.getPath()
@@ -99,8 +130,9 @@ if __name__ == '__main__':
 	if not dir1.getPath() or not dir2.getPath():
 		print "Invalid path ... program exits"
 		system.exit(1)
-	obj=cDiff(dir1.getPath(), dir2.getPath(), True)
-	obj._findSo1()
+	obj=cDiff(dir1.getPath(), dir2.getPath())
+	obj._findSo2()
+	#obj._findSo1()
 	'''
 	for sub in chkPath:
 		obj._findSo(sub)
