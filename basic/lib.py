@@ -13,9 +13,10 @@ class manuLib(object):
 	# Determine system things
 	# Out: self._os
 	#
-	def __init__(self):
+	def __init__(self, debug=False):
 		self._os=sys.platform
 		self._isRoot=False
+		self._debug=debug
 		if self._os == 'win32':
 			self._os=self.OS_WINDOWS
 		elif self._os == 'darwin':
@@ -26,6 +27,14 @@ class manuLib(object):
 			self._os=self.OS_UNKNOWN
 		#update _isRoot if necessary
 		self._checkRoot()
+
+	# msg - message to print
+	# newLine - False means 'print xxx,'
+	def _DBG(self, msg, newLine=True):
+		if not self._debug: return
+		if newLine: print msg
+		else: print msg,
+
 
 	#
 	# Ret: OS_XXX
