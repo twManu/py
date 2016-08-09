@@ -13,8 +13,8 @@ class cPath(manuLib):
 
 	# In  : path - if not provided, use current directory
 	# Out : _parentDir, _pathName, _type
-	def __init__(self, thePath=""):
-		super(cPath, self).__init__()
+	def __init__(self, thePath, debug=False):
+		super(cPath, self).__init__(debug)
 		self._pathName=""                #the key, full path
 		self._parentName=""              #full path
 		self._type=self.TYPE_NONE
@@ -31,7 +31,8 @@ class cPath(manuLib):
 			#leave parent "" if this is root dir
 			if self._pathName != "/":
 				self._parentName=os.path.dirname(self._pathName)
-		#print self._pathName, self._type, self._parentDir
+		self._DBG("Path: "+self._pathName+", Parent: "+self._parentName, False)
+		self._DBG("Type: "+self.getTypeName(self._type))
 
 	# Given path, return its type and display name
 	# if not provided, return path type of this object
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 	#check path, type, and parent
 	testPath=("", "/", ".", "..", "/etc/vtrgb", "~/.bashrc")
 	for pp in testPath:
-		thisDir=cPath(pp)
+		thisDir=cPath(pp, os.getcwd())
 		print "Path="+thisDir.getPath()+", type="+thisDir.getTypeName(thisDir.getType()),
 		print ", Parent="+thisDir.getParent()
 	#check subdir existence
