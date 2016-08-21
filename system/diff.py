@@ -71,8 +71,45 @@ class cDiff(cPath):
 		self._DBG("")
 		self._DBG(totalSize)
 
+	#find both presenst, both size>4000, then link to src
+	def _findSo3(self):
+		totalSize=0
+		oPath=self._otherPathObj.getPath()
+		#find from src dir
+		for dirPath, dirNames, fileNames in os.walk(self._pathName):
+			subPath=re.sub(self._pathName, "", dirPath)
+			#/var/lib -> var/lib
+			nSubPath=re.sub(r'^/', "", subPath)
+			#add prepend owning to subpath
+			words=subPath.split('/')
+			prepend=""
+			for section in subPath.split('/'):
+				if section.strip(): prepend += "../"
+			prepend += self._linkAppend+subPath
+			#so in src subdir
+			for soFile in glob.glob(self._pathName+subPath+'/*.so*'):
+				if os.path.islink(soFile): continue
+				if os.path.isdir(soFile): continue
+				srcSize = os.path.getsize(soFile)
+				base=os.path.basename(soFile)
+				tgtPath=oPath+subPath+'/'+os.path.basename(soFile)       #other file
+				if os.path.isfile(tgtPath):
+					tgtSize = os.path.getsize(tgtPath)
+					if tgtSize != srcSize:
+						self._DBG("Size mismatch")
+					else:
+						os.system("rm -f "+tgtPath)
+						cmd = "cd "+oPath+subPath+"; ln -s "+prepend+"/"+base+" "+base
+						os.system(cmd)
+						self._DBG("pushd "+oPath+subPath)
+						self._DBG("ln -s "+prepend+"/"+base+" "+base)
+						totalSize += tgtSize
+				else:
+					self._DBG("Missing target "+tgtPath)
+		self._DBG(str(totalSize))
 
 
+	#find both presenst, both size>4000, then link to src
 	def _findSo2(self):
 		totalSize=0
 		oPath=self._otherPathObj.getPath()
@@ -131,9 +168,4 @@ if __name__ == '__main__':
 		print "Invalid path ... program exits"
 		system.exit(1)
 	obj=cDiff(dir1.getPath(), dir2.getPath())
-	obj._findSo2()
-	#obj._findSo1()
-	'''
-	for sub in chkPath:
-		obj._findSo(sub)
-	'''
+	obj._findSo3()
