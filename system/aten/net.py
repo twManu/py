@@ -25,13 +25,13 @@ INT_NET=(
 INT_DEL_NET=(
 	  {
 		'net': '10.0.1.24',
-		'Iface': 'enp3s0'
+		'Iface': 'enp3s0',
 		'cmd' : "route del 10.0.1.24 dev enp3s0"
 	}
 	, {
 		'net': '10.3.56.0',
-		'Iface': 'enp3s0'
-		'cmd' : "ip croute del 10.3.56.0/23"
+		'Iface': 'enp3s0',
+		'cmd' : "ip route del 10.3.56.0/23"
 	}
 )
 
