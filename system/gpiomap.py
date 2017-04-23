@@ -1,3 +1,4 @@
+import os
 
 """
 decorator of class method to concatenate gpiochip#GROUP and gpio#PIN
@@ -34,25 +35,28 @@ class gpio(object):
 	STA_EXPT=2
 	DIR_IN=1
 	DIR_OUT=0
-	
 	"""make sure pin exported """
 	def __init__(self, chip, group, pin):
 		self._status = self.STA_UNEXPT
 		self._dir = self.DIR_IN
-		self._chip = chip 
-		map_fun = chip+'_gpio'           #am57_gpio for example
-		self._group, self._pin = self.am57_getPin(group, pin)
+		self._chip = chip
+		"""xxx_getPin existence """
+		methodName = self._chip+'_getPin'
+		if not methodName in gpio.__dict__:
+			print self._chip+' does not support'
+			return
+		func = getattr(self, methodName)
+		self._group, self._pin = func(group, pin)
 		#print self._group, self._pin
 		"""check if already exported """
 		if os.path.exists(self._pin):
 			self._status = self.STA_EXPT
 		else:
-			to export
+			print "todo export"
 
 	
 	def doExport(self):
-		if STA_EXPT == self._status:
-			
+		#todo
 		cmd = 'echo '+str(self._pin)+' >'+GPIO_PATH+'/export'
 		sys(cmd)
 		if not file.exist(self._path):
