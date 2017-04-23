@@ -55,3 +55,4 @@ elif os.path.isdir(arg.linkName):
 		sys.exit(0)
 else:
 	print 'to create link '+linkName+' under '+dirName+' to '+arg.srcName
+	os.system('cd '+dirName+';ln -s '+arg.srcName+' '+linkName)
