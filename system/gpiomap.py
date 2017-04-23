@@ -1,41 +1,24 @@
-def deco_map(func):
-	def func_wrapper(path, chip, pin):
-		p1, p2 = func(chip, pin)
-		if p1 is None:
-			if p2 is None:
-				return None, None
-			else:
-				return None, path+'/'+p2
-		return path+'/gpiochip'+p1, path+'/gpio'+p2
-	return func_wrapper
 
-@deco_map
-def am57_chip(chip, pin):
-	"""chip=1-8, pin=0-31 """
-	if chip<=0 or chip>8:
-		return None, None
-	chip = chip - 1
-	if pin<0 or pin>=32:
-		return None, None
-	return chip, 32*chip+pin
-
-
-
-class gpioMap(object):
-	def __init__(self, chip):
-		self._map = NIL
-		if chip = "AM5728":
-			self._map = _am57Map
-
- @abstractmethod
-    def vehicle_type():
-        """"Return a string representing the type of vehicle this is."""
-        pass
-	# Linear, valid 0-287
-	def _am57Map(self, pin):
-		if pin >= 288:
-			return NIL
-		return pin
+"""
+decorator of class method to concatenate gpiochip#GROUP and gpio#PIN
+In :
+	path - common path full name of "gpiochip" and "gpio"
+	func - soc specific function to turn group/pin into suffix of "gpiochip" and "gpio"
+	       the func only returns two number or string 
+"""
+def path_chip_map(path):
+	def deco_map(func):
+		def func_wrapper(*args, **kwargs):
+			p1, p2 = func(*args, **kwargs)
+			if p1 is None:
+				if p2 is None:
+					return None, None
+				else:
+					return None, path+'/gpio'+str(p2)
+			return path+'/gpiochip'+str(p1),\
+			       path+'/gpio'+str(p2)
+		return func_wrapper
+	return deco_map
 
 
 #
@@ -46,20 +29,30 @@ class gpioMap(object):
 #          obj.out(1)
 #
 class gpio(object):
-	GPIO_PATH=/sys/class/gpio
+	GPIO_PATH='/sys/class/gpio'
 	STA_UNEXPT=1
 	STA_EXPT=2
 	DIR_IN=1
 	DIR_OUT=0
-	def __init__(self, group, pin):
-		self._status = STA_UNEXPT
-		self._dir = DIR_IN
-		self._group, self._pin = gpioMap(group, pin)
-		
+	
+	"""make sure pin exported """
+	def __init__(self, chip, group, pin):
+		self._status = self.STA_UNEXPT
+		self._dir = self.DIR_IN
+		self._chip = chip 
+		map_fun = chip+'_gpio'           #am57_gpio for example
+		self._group, self._pin = self.am57_getPin(group, pin)
+		#print self._group, self._pin
+		"""check if already exported """
+		if os.path.exists(self._pin):
+			self._status = self.STA_EXPT
+		else:
+			to export
+
 	
 	def doExport(self):
-		if STA_EXPT = self._status:
-			return self._path
+		if STA_EXPT == self._status:
+			
 		cmd = 'echo '+str(self._pin)+' >'+GPIO_PATH+'/export'
 		sys(cmd)
 		if not file.exist(self._path):
@@ -69,24 +62,34 @@ class gpio(object):
 		return self._path
 		
 	def doUnexport(self):
-		if STA_UNEXPT = self._status:
+		if STA_UNEXPT == self._status:
 			return self._path
 		cmd = 'echo '+str(self._pin)+' >'+GPIO_PATH+'/unexport'
 		sys(cmd)
 		self._status = STA_UNEXPT
 		self._dir = DIR_IN
 	
+	@path_chip_map(GPIO_PATH)
+	def am57_getPin(self, chip, pin):
+        	"""chip=1-8, pin=0-31 """
+	        if chip<=0 or chip>8:
+        	        return None, None
+        	chip = chip - 1
+        	if pin<0 or pin>=32:
+                	return None, None
+	        return chip, 32*chip+pin
+
 	# In  : in - 0 means output
 	#    otherwise means input
 	# Ret : NIL - direction not applied
 	#       command applied
-	def direction(self, in):
+	def direction(self, input):
 		cmd = ''
-		if DIR_IN = self._dir:
-			if not in:
+		if DIR_IN == self._dir:
+			if not input:
 				cmd = 'echo in'	
 		else:        #output now
-			if not in:
+			if not input:
 				cmd = 'echo out'
 		if cmd:
 			cmd += ' >'+self._path+'/direction'
@@ -96,9 +99,9 @@ class gpio(object):
 	# Ret : NIL not an input pin
 	#      0 or 1
 	def get(self):
-		if STA_EXPT = self._status:
-			if DIR_IN = self._dir:
-				echo the result
+		if STA_EXPT == self._status:
+			if DIR_IN == self._dir:
+				print 'echo the result'
 				return 0 or 1
 		return NIL
 		
@@ -106,9 +109,15 @@ class gpio(object):
 	# Ret : NIL - fail to set value
 	#       1 - value applied
 	def set(self, value):
-		if not STA_EXPT = self._status:
+		if not STA_EXPT == self._status:
 			return NIL
-		if not DIR_OUT = self._dir:
+		if not DIR_OUT == self._dir:
 			return NIL
 			#echo 1 or 0
 		return 1
+
+#
+# main
+#
+if __name__ == '__main__':
+	obj=gpio('am57', 3, 26)
