@@ -33,6 +33,16 @@ INT_DEL_NET=(
 		'Iface': 'enp3s0',
 		'cmd' : "ip route del 10.3.56.0/23"
 	}
+	,  {
+		'net': '10.0.1.24',
+		'Iface': 'enp0s31f6',
+		'cmd' : "route del 10.0.1.24 dev enp0s31f6"
+	}
+	, {
+		'net': '10.3.56.0',
+		'Iface': 'enp0s31f6',
+		'cmd' : "ip route del 10.3.56.0/23"
+	}
 )
 
 
@@ -53,6 +63,9 @@ class routing(manuLib):
 			#Destination Gateway Genmask Flags Metric Ref Use Iface
 			theDict['Destination']=words[0].strip()
 			theDict['Gateway']=words[1].strip()
+			if not self._d4gwDict:
+				if INT_GW==theDict['Gateway']:
+					self._d4gwDict = theDict
 			theDict['Genmask']=words[2].strip()
 			theDict['Iface']=words[7].strip()
 			routeList.append(theDict)
@@ -62,8 +75,22 @@ class routing(manuLib):
 	# In  : intf - net device
 	def __init__(self, intf=None):
 		super(routing, self).__init__()
-		self._intf=intf
+		self._d4gwDict = None
 		self._curRouteList=self._curRoute()
+		#make sure intf exists
+		found = 0
+		if intf:
+			for dd in self._curRouteList:
+				if dd['Iface']==intf:
+					found = 1
+					break
+			if found:
+				print intf+' is valid'
+			else:
+				print intf+' is missing'
+				print 'using '+self._d4gwDict['Iface']
+				intf = self._d4gwDict['Iface']
+		self._intf=intf
 
 	# form "a.b.c.d/mask-length" from rule dictionary
 	# Ret : "a.b.c.d/mask-length"
@@ -112,6 +139,7 @@ class routing(manuLib):
 					continue
 				cmd = "ip route add "+ipMsk
 				cmd += " dev "+self._intf+" via "+gw
+				print 'exec cmd: '+cmd
 			else:
 				if not exist:
 					print ipMsk+" not in routing table"

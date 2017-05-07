@@ -83,6 +83,15 @@ class cPath(manuLib):
 				fList.append(os.path.join(subPath, f))
 		return fList
 
+	def cascade(self, frontPath, rearPath):
+                if frontPath:
+                        if not rearPath: return frontPath
+                else: return rearPath
+                #both front and rear
+                frontPath = re.sub(r'/$', "", frontPath)
+                rearPath = re.sub(r'^/', "", rearPath)
+                return frontPath+'/'+rearPath
+
 #
 # main
 #
