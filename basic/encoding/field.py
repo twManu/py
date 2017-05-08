@@ -8,7 +8,7 @@ class field(object):
     #opened file with cur pos for this man
     #desc contains
     #   desc['fields'] : tuple of each fieldName
-    #   desc[<fieldName>] : unpack parameter 'B', 'H', 'I', or signed version 'b', 'H', 'I'
+    #   desc[<fieldName>] : unpack parameter 'B', 'H', 'I', or signed version 'b', 'h', 'i'
     def __init__(self, f, fieldDesc):
         self._field = {}
         for ff in fieldDesc['fields']:
