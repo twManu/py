@@ -29,8 +29,8 @@ class field(object):
 #main
 if __name__ == '__main__':
     fDesc = {
-        'fields': ('正義', '仁愛', '勇氣'),
-        '正義': 'B',
+        'fields': ('忠義', '仁愛', '勇氣'),
+        '忠義': 'B',
         '仁愛': 'B',
         '勇氣': 'B'
     } 

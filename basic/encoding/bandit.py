@@ -89,14 +89,14 @@ g_bandit = {
 class bandit(field):
     BANDIT_SIZE = 22
     FIELD_DESC = {
-        'fields': ('年紀', '國家', '地區', '體力', '體力上限', '正義', '仁愛', '勇氣', '力量', '技能', '智慧'\
+        'fields': ('年紀', '國家', '地區', '體力', '體力上限', '忠義', '仁愛', '勇氣', '力量', '技能', '智慧'\
             , '力量經驗', '技能經驗', '智慧經驗', '忠誠', '頭像', '名聲', '土兵', '角色', '未知19', '未知20', '未知21'),
         '年紀': 'B',
         '國家': 'B',
         '地區': 'B',
         '體力': 'B',
         '體力上限': 'B',
-        '正義': 'B',
+        '忠義': 'B',
         '仁愛': 'B',
         '勇氣': 'B',
         '力量': 'B',
@@ -119,9 +119,12 @@ class bandit(field):
         super(bandit, self).__init__(f, self.FIELD_DESC)
 
 
-    #return 3 char
-    def ability(self):
-        return pack('BBB', self._field['正義'], self._field['仁愛'], self._field['勇氣'])
+    #given key, return value if valid
+    #otherwise none returned
+    def attr(self, key):
+        if self._field.has_key(key):
+            return self._field[key]
+        return None
 
 
 # take care of file
@@ -140,18 +143,41 @@ class banditParser(object):
 
 
     def _lookup(self, index, man):
-        ability = man.ability()
+        ability = pack('BBB', man.attr('忠義'), man.attr('仁愛'), man.attr('勇氣'))
         for mm, aa in g_bandit.iteritems():
             if ability == pack('BBB', aa[0], aa[1], aa[2]):
                 return mm
         return "第"+str(index+1)+"位"
-        
-    def show(self):
-        if self._bandits.has_key("花榮"):
-            print "花榮:"
-            self._bandits["花榮"].show() 
+
+    #man is already a bandit object
+    def show1(self, name, man):
+                print name+" ("+str(man.attr("忠誠"))+")"
+                print '    忠義 仁愛 勇氣 =',
+                print man.attr("忠義"),
+                print man.attr("仁愛"),
+                print man.attr("勇氣"),
+                print "("+pack('BBB', man.attr("忠義"), man.attr("仁愛"), man.attr("勇氣")).encode('hex')+")"
+                print '    力量 技能 智慧 =',
+                print man.attr("力量"),
+                print man.attr("技能"),
+                print man.attr("智慧"),
+                print "("+pack('BBB', man.attr("力量"), man.attr("技能"), man.attr("智慧")).encode('hex')+")"
+
+
+    #show a man or all
+    def show(self, name):
+        if name:
+            if self._bandits.has_key(name):
+                self.show1(name, self._bandits[name])
+            else:
+                print "unknown "+name
+        else:
+            for key, value in self._bandits.iteritems():
+                self.show1(key, value)
+
 
 #main
 if __name__ == '__main__':
     bP = banditParser("/home/manu/Downloads/SAN5/bandit/SAVEDATA")
-    bP.show()
+    #bP.show("花榮")
+    bP.show("")
