@@ -85,6 +85,7 @@ g_bandit = {
     "許貫忠": (75, 88, 79)      
 }
 
+
 g_leader = ("林沖", "宋江", "史進", "晁蓋", "楊志", "魯智深", "武松")
 
 # each for a state
@@ -117,9 +118,6 @@ class state(field):
     #opened file with cur pos for this man
     def __init__(self, f):
         super(state, self).__init__(f, self.FIELD_DESC)
-
-       
-
 
 
 # each for a man
@@ -156,8 +154,6 @@ class bandit(field):
         super(bandit, self).__init__(f, self.FIELD_DESC)
 
 
-
-
 # take care of file
 class banditParser(object):
     OFFSET_BANDIT = 16
@@ -188,34 +184,79 @@ class banditParser(object):
         return "第"+str(index+1)+"位"
 
     #man is already a bandit object
-    def show1(self, name, man):
-                print name+" ("+str(man.attr("忠誠"))+")"
-                print '    忠義 仁愛 勇氣 =',
-                print man.attr("忠義"),
-                print man.attr("仁愛"),
-                print man.attr("勇氣"),
-                print "("+pack('BBB', man.attr("忠義"), man.attr("仁愛"), man.attr("勇氣")).encode('hex')+")"
-                print '    力量 技能 智慧 =',
-                print man.attr("力量"),
-                print man.attr("技能"),
-                print man.attr("智慧"),
-                print "("+pack('BBB', man.attr("力量"), man.attr("技能"), man.attr("智慧")).encode('hex')+")"
+    def show1Man(self, name, man):
+        print name+" ("+str(man.attr("忠誠"))+")"
+        print '    忠義 仁愛 勇氣 =',
+        print man.attr("忠義"),
+        print man.attr("仁愛"),
+        print man.attr("勇氣"),
+        print "("+pack('BBB', man.attr("忠義"), man.attr("仁愛"), man.attr("勇氣")).encode('hex')+")"
+        print '    力量 技能 智慧 =',
+        print man.attr("力量"),
+        print man.attr("技能"),
+        print man.attr("智慧"),
+        print "("+pack('BBB', man.attr("力量"), man.attr("技能"), man.attr("智慧")).encode('hex')+")"
 
 
     #show a man or all
-    def show(self, name):
+    def showMan(self, name):
         if name:
             if self._bandits.has_key(name):
-                self.show1(name, self._bandits[name])
+                self.show1Man(name, self._bandits[name])
             else:
                 print "unknown "+name
         else:
             for key, value in self._bandits.iteritems():
-                self.show1(key, value)
+                self.show1Man(key, value)
+
+    #i: 1 based 
+    def show1State(self, stateObj, i):
+        print str(i)+" 州"
+        print '  黃金 :',
+        print stateObj.attr('黃金'),
+        print '  糧草: ',
+        print stateObj.attr('糧草'),
+        print '  金屬 :',
+        print stateObj.attr('金屬'),
+        print '  毛皮 :',
+        print stateObj.attr('毛皮'),
+        print '  物價 :',
+        print stateObj.attr('物價')
+
+        print '  支持 :',
+        print stateObj.attr('支持'),
+        print '  治水: ',
+        print stateObj.attr('治水'),
+        print '  地利 :',
+        print stateObj.attr('地利'),
+        print '  毛皮 :',
+        print stateObj.attr('毛皮'),
+        print '  財富 :',
+        print stateObj.attr('財富')
+        
+        print '  武器 :',
+        print stateObj.attr('武器'),
+        print '  戰技: ',
+        print stateObj.attr('戰技'),
+        print ''
+
+
+    #show a state or all
+    def showState(self, stateList):
+        if stateList:
+            for index in stateList:
+                if self._states.has_key(index):
+                    self.show1State(self._bandits[index], index+1)
+            else:
+                print "unknown state "+str(index)
+        else:
+            for key, value in self._states.iteritems():
+                self.show1State(value, key+1)
 
 
 #main
 if __name__ == '__main__':
-    bP = banditParser("/home/manu/Downloads/SAN5/bandit/SAVEDATA")
-    #bP.show("花榮")
-    bP.show("")
+    bP = banditParser("/home/manu/dos/bandit/SAVEDATA")
+    #bP.showMan("花榮")
+    bP.showMan("")
+    bP.showState("")
