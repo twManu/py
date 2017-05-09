@@ -85,6 +85,43 @@ g_bandit = {
     "許貫忠": (75, 88, 79)      
 }
 
+g_leader = ("林沖", "宋江", "史進", "晁蓋", "楊志", "魯智深", "武松")
+
+# each for a state
+class state(field):
+    STATE_SIZE = 24
+    FIELD_DESC = {
+        'fields': ('黃金', '糧草', '金屬', '毛皮', '物價', '治水', '地利', '財富', '支持', '武器', '戰技'\
+            , '未知11', '未知12', '未知13', '未知14', '未知15', '未知16', '未知17', '未知18', '未知19'),
+        '黃金': 'H',
+        '糧草': 'H',
+        '金屬': 'H',
+        '毛皮': 'H',
+        '物價': 'B',
+        '治水': 'B',
+        '地利': 'B',
+        '財富': 'B',
+        '支持': 'B',
+        '武器': 'B',
+        '戰技': 'B',
+        '未知11': 'B',
+        '未知12': 'B',
+        '未知13': 'B',
+        '未知14': 'B',
+        '未知15': 'B',
+        '未知16': 'B',
+        '未知17': 'B',
+        '未知18': 'B',
+        '未知19': 'B'
+    }
+    #opened file with cur pos for this man
+    def __init__(self, f):
+        super(state, self).__init__(f, self.FIELD_DESC)
+
+       
+
+
+
 # each for a man
 class bandit(field):
     BANDIT_SIZE = 22
@@ -119,27 +156,28 @@ class bandit(field):
         super(bandit, self).__init__(f, self.FIELD_DESC)
 
 
-    #given key, return value if valid
-    #otherwise none returned
-    def attr(self, key):
-        if self._field.has_key(key):
-            return self._field[key]
-        return None
 
 
 # take care of file
 class banditParser(object):
     OFFSET_BANDIT = 16
+    OFFSET_STATE = 5964
     BANDIT_COUNT = 255
+    STATE_COUNT = 49
     def __init__(self, fname):
         self._fname = fname
         #data base
         self._bandits = {}
+        self._states = {}
         with open(fname, "rb") as f:
             f.seek(self.OFFSET_BANDIT, 0)
             for i in range(self.BANDIT_COUNT):
                 obj = bandit(f)
-                self._bandits[self._lookup(i, obj)] = obj 
+                self._bandits[self._lookup(i, obj)] = obj
+            f.seek(self.OFFSET_STATE, 0)
+            #state is 0 based
+            for i in range(self.STATE_COUNT):
+                self._states[i] = state(f)
 
 
     def _lookup(self, index, man):

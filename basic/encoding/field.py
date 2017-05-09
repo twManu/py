@@ -21,6 +21,13 @@ class field(object):
             else:
                 raise NameError('unknown field type')
 
+    #given key, return value if valid
+    #otherwise none returned
+    def attr(self, key):
+        if self._field.has_key(key):
+            return self._field[key]
+        return None
+
     def show(self):
         for key, value in self._field.iteritems():
             print key+': '+str(value)
