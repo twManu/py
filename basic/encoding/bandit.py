@@ -158,6 +158,29 @@ class bandit(field):
 	def __init__(self, f):
 		super(bandit, self).__init__(f, self.FIELD_DESC)
 
+	#1-based index
+	def brother(self, leader=None):
+		self.set('體力', 255)
+		self.set('體力上限', 255)
+		self.set('力量', 100)
+		self.set('技能', 127)
+		self.set('智慧', 127)
+		self.set('忠誠', 100)
+		self.set('土兵', 100)
+		if not leader:
+			role = self.attr('角色')
+			role |= 2
+			self.set('角色', role)
+
+
+	def leader(self):
+		#leader won't set role brother
+		self.brother(1)
+		self.set('忠義', 99)
+		self.set('仁愛', 99)
+		self.set('勇氣', 99)
+		self.set('名聲', 999)
+
 
 # take care of file
 class banditParser(object):
@@ -240,7 +263,18 @@ class banditParser(object):
 						print '#'+str(i+1),
 						self.show1Man(mm, obj)
 						break
-				
+
+	#1 based index
+	def brother(self, index):
+		if index and index<=len(self._banditList):
+			self._banditList[index-1].brother()
+
+
+	#1 based index
+	def leader(self, index):
+		if index and index<=len(self._banditList):
+			self._banditList[index-1].leader()
+
 
 	#i: 1 based 
 	def show1State(self, stateObj, i):
@@ -286,6 +320,8 @@ class banditParser(object):
 # Ret : arg - parsed result
 def chk_param():
 	parser = argparse.ArgumentParser()
+	parser.add_argument('-m', action='store', dest='modify', default='',
+		help='s (state) or h (hero), l(leader), default none')
 	parser.add_argument('-q', action='store', dest='query', default='sh',
 		help='s (state) or h (hero), default both')
 	parser.add_argument('-i', action='store', dest='index', default=0,
@@ -298,10 +334,15 @@ def chk_param():
 if __name__ == '__main__':
 	bP = banditParser("/home/manuchen/.dosbox/bandit/SAVEDATA")
 	arg = chk_param()
+	if arg.modify:
+		if 'l' in arg.modify:
+			bP.leader(int(arg.index))
+		elif 'h' in arg.modify:
+			bP.brother(int(arg.index))
+		elif 's' in arg.modify:
+			print 'not ready'
 	if 'h' in arg.query:
 		bP.showManIndex(int(arg.index))
 	if 's' in arg.query:
 		bP.showState(int(arg.index))
-	#bP.showMan("")
-	#bP.showState(0)
 
