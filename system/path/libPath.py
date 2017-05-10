@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-import os, sys, re, argparse, glob
+import os, sys, re, argparse, glob, commands
 sys.path.append('../../basic')
 from lib import manuLib
 
@@ -91,6 +91,67 @@ class cPath(manuLib):
                 frontPath = re.sub(r'/$', "", frontPath)
                 rearPath = re.sub(r'^/', "", rearPath)
                 return frontPath+'/'+rearPath
+
+#
+# Gievn dev node and optionally mount point
+# Provide mount and umount
+# Can report dev node and mount path
+class partition(object):
+	#node: node name under /dev
+	#      can be absent since it might later be created
+	#mountPath: mount point when to mount
+	#      if not given, check the following
+	#       1. check df
+	#       2. /tmp/<node> will be used
+	def __init__(self, node, mountPath=None):
+		self._devNode = node
+		self._devPath = '/dev/'+node
+		if not os.path.exists(self._devPath):
+			print "Missing "+self._devPath+" !!!"
+			self._mountPath = '/run/media/'+node
+			return
+		if mountPath:
+			self._mountPath = mountPath
+		else:
+			#check if mounted
+			lines = commands.getoutput('df').splitlines()
+			for ll in lines:
+				mountDev = ll.split()[0]
+				if re.match(self._devPath, mountDev, re.M|re.I):
+					self._mountPath = ll.split()[5]
+					return
+			#not mounted
+			self._mountPath = '/tmp/'+node
+
+
+	def umount(self):
+		#do nothing if node not present
+		if not os.path.exists(self._devPath):
+			return
+		lines = commands.getoutput('df').splitlines()
+		for ll in lines:
+			mountDev = ll.split()[0]
+			if re.match(self._devPath, mountDev, re.M|re.I):
+				print "Umount "+mountDev
+				os.system("umount "+mountDev)
+
+
+	def mount(self):
+		if not os.path.exists(self._devPath):
+			print 'Skip mounting '+self._devPath
+			return
+		#make sure path exists
+		os.system('mkdir -p '+self._mountPath)
+		os.system('mount '+self._devPath+' '+self._mountPath)
+
+
+	def devPath(self):
+		return self._devPath
+
+
+	def mountPath(self):
+		return self._mountPath
+
 
 #
 # main
