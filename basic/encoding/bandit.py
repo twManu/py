@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys, struct
+import sys, struct, argparse
 from struct import *
 from field import *
 
@@ -221,6 +221,25 @@ class banditParser(object):
 						print '#'+str(i+1),
 						self.show1Man(mm, obj)
 						break
+	#show man by 1-based index
+	def showManIndex(self, index):
+		if index:
+			if index<=len(self._banditList):
+				man = self._banditList[index-1]
+				for mm, obj in self._bandits.iteritems():
+					if obj==man:
+						#show 1 based
+						self.show1Man(mm, obj)
+						break
+		else:
+			for i in range(len(self._banditList)):
+				man = self._banditList[i]
+				for mm, obj in self._bandits.iteritems():
+					if obj==man:
+						#show 1 based
+						print '#'+str(i+1),
+						self.show1Man(mm, obj)
+						break
 				
 
 	#i: 1 based 
@@ -256,17 +275,33 @@ class banditParser(object):
 	#show a state or all(0)
 	def showState(self, i):
 		if i:
-			self.show1State(self._stateList[i-1])
+			self.show1State(self._stateList[i-1], i)
 		else:
 			for ss in self._stateList:
 				i += 1
 				self.show1State(ss, i)
 
 
+# Parse argument and make sure there is action to be taken
+# Ret : arg - parsed result
+def chk_param():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-q', action='store', dest='query', default='sh',
+		help='s (state) or h (hero), default both')
+	parser.add_argument('-i', action='store', dest='index', default=0,
+		help='index of object to query')
+	arg=parser.parse_args()
+	return arg
+
+
 #main
 if __name__ == '__main__':
 	bP = banditParser("/home/manuchen/.dosbox/bandit/SAVEDATA")
-	#bP.showMan("花榮")
-	bP.showMan("")
-	bP.showState(0)
+	arg = chk_param()
+	if 'h' in arg.query:
+		bP.showManIndex(int(arg.index))
+	if 's' in arg.query:
+		bP.showState(int(arg.index))
+	#bP.showMan("")
+	#bP.showState(0)
 
