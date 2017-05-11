@@ -320,11 +320,13 @@ class banditParser(object):
 # Ret : arg - parsed result
 def chk_param():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-m', action='store', dest='modify', default='',
-		help='s (state) or h (hero), l(leader), default none')
+	parser.add_argument('-l', action='store', dest='leader', default=0,
+		help='specify leader by 1-based index')
+	parser.add_argument('-b', action='append', dest='brother', default=[],
+		help='specify brother (multiple times) by 1-based index')
 	parser.add_argument('-q', action='store', dest='query', default='sh',
 		help='s (state) or h (hero), default both')
-	parser.add_argument('-i', action='store', dest='index', default=0,
+	parser.add_argument('-i', action='append', dest='index', default=[],
 		help='index of object to query')
 	arg=parser.parse_args()
 	return arg
@@ -334,15 +336,14 @@ def chk_param():
 if __name__ == '__main__':
 	bP = banditParser("/home/manuchen/.dosbox/bandit/SAVEDATA")
 	arg = chk_param()
-	if arg.modify:
-		if 'l' in arg.modify:
-			bP.leader(int(arg.index))
-		elif 'h' in arg.modify:
-			bP.brother(int(arg.index))
-		elif 's' in arg.modify:
-			print 'not ready'
+	if arg.leader:
+		bP.leader(int(arg.leader))
+	for bb in arg.brother:
+		bP.brother(int(bb))
 	if 'h' in arg.query:
-		bP.showManIndex(int(arg.index))
+		for ii in arg.index:
+			bP.showManIndex(int(ii))
 	if 's' in arg.query:
-		bP.showState(int(arg.index))
+		for ii in arg.index:
+			bP.showState(int(ii))
 
