@@ -124,7 +124,18 @@ class state(field):
 		super(state, self).__init__(f, self.FIELD_DESC)
 
 		
-	
+	#1-based index
+	def update(self):
+		self.set('黃金', 20000)
+		self.set('糧草', 20000)
+		self.set('金屬', 20000)
+		self.set('毛皮', 20000)
+		self.set('治水', 100)
+		self.set('地利', 100)
+		self.set('財富', 100)
+		self.set('支持', 100)
+		self.set('武器', 100)
+		self.set('戰技', 100)
 
 
 # each for a man
@@ -277,7 +288,7 @@ class banditParser(object):
 						self.show1Man(mm, obj)
 						break
 
-	#1 based index
+	#set as brother with 1 based index
 	#Ret : 0 - fail to update
 	#      1 - successful
 	def brother(self, index):
@@ -287,7 +298,7 @@ class banditParser(object):
 		return 0
 
 
-	#1 based index
+	#set as leader with 1 based index
 	#Ret : 0 - fail to update
 	#      1 - successful
 	def leader(self, index):
@@ -296,6 +307,15 @@ class banditParser(object):
 			return 1
 		return 0
 	
+
+	#set state parameters with 1 based index
+	#Ret : 0 - fail to update
+	#      1 - successful
+	def state(self, index):
+		if index and index<=len(self._stateList):
+			self._stateList[index-1].update()
+			return 1
+		return 0
 
 
 	#i: 1 based 
@@ -348,6 +368,8 @@ def chk_param():
 		help='specify leader by 1-based index')
 	parser.add_argument('-b', action='append', dest='brother', default=[],
 		help='specify brother (multiple times) by 1-based index')
+	parser.add_argument('-s', action='append', dest='state', default=[],
+		help='specify state (multiple times) by 1-based index')
 	parser.add_argument('-q', action='store', dest='query', default='sh',
 		help='s (state) or h (hero), default sh (both)')
 	parser.add_argument('-i', action='append', dest='index', default=[],
@@ -365,6 +387,8 @@ if __name__ == '__main__':
 		modify += bP.leader(int(arg.leader))
 	for bb in arg.brother:
 		modify += bP.brother(int(bb))
+	for ss in arg.state:
+		modify += bP.state(int(ss))
 	if modify:
 		print 'writing file'
 		bP.update()
