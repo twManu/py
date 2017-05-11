@@ -132,7 +132,7 @@ class bandit(field):
 	BANDIT_SIZE = 22
 	FIELD_DESC = {
 		'fields': ('年紀', '國家', '地區', '體力', '體力上限', '忠義', '仁愛', '勇氣', '力量', '技能', '智慧'\
-			, '力量經驗', '技能經驗', '智慧經驗', '忠誠', '頭像', '名聲', '土兵', '角色', '未知19', '未知20', '未知21'),
+			, '力量經驗', '技能經驗', '智慧經驗', '忠誠', '頭像', '名聲', '土兵', '角色', '未知20', '未知21'),
 		'年紀': 'B',
 		'國家': 'B',
 		'地區': 'B',
@@ -149,10 +149,9 @@ class bandit(field):
 		'智慧經驗': 'B',
 		'忠誠': 'B',
 		'頭像': 'B',
-		'名聲': 'B',
+		'名聲': 'H',
 		'土兵': 'B',
 		'角色': 'B',
-		'未知19': 'B',
 		'未知20': 'B',
 		'未知21': 'B'
 	}
@@ -197,7 +196,7 @@ class banditParser(object):
 		self._bandits = {}           #to access by name
 		self._banditList = []        #list of object
 		self._stateList = []         #list of object
-		with open(fname, "r+b") as f:
+		with open(fname, "rb") as f:
 			f.seek(self.OFFSET_BANDIT, 0)
 			for i in range(self.BANDIT_COUNT):
 				obj = bandit(f)
@@ -209,6 +208,17 @@ class banditParser(object):
 				self._stateList.append(state(f))
 
 
+
+	def update(self):
+		with open(self._fname, "r+b") as f:
+			f.seek(self.OFFSET_BANDIT, 0)
+			for hh in self._banditList:
+				hh.write(f)
+			f.seek(self.OFFSET_STATE, 0)
+			for ss in self._stateList:
+				ss.write(f)
+
+		
 	def _lookup(self, index, man):
 		ability = pack('BBB', man.attr('忠義'), man.attr('仁愛'), man.attr('勇氣'))
 		for mm, aa in g_bandit.iteritems():
@@ -356,7 +366,9 @@ if __name__ == '__main__':
 	for bb in arg.brother:
 		modify += bP.brother(int(bb))
 	if modify:
-		print 'file should be updated'
+		print 'writing file'
+		bP.update()
+	#still response to query
 	if 'h' in arg.query:
 		for ii in arg.index:
 			bP.showManIndex(int(ii))

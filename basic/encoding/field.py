@@ -11,6 +11,7 @@ class field(object):
 	#   desc[<fieldName>] : unpack parameter 'B', 'H', 'I', or signed version 'b', 'h', 'i'
 	def __init__(self, f, fieldDesc):
 		self._field = {}
+		self._desc = fieldDesc
 		for ff in fieldDesc['fields']:
 			if fieldDesc[ff] == 'b' or fieldDesc[ff] == 'B':
 				self._field[ff], = struct.unpack(fieldDesc[ff], f.read(1))
@@ -32,6 +33,11 @@ class field(object):
 	def set(self, key, value):
 		if self._field.has_key(key):
 			self._field[key] = value
+
+	#reverse the unpack procedure
+	def write(self, f):
+		for ff in self._desc['fields']:
+			f.write(struct.pack(self._desc[ff], self._field[ff]))
 
 
 	def show(self):
