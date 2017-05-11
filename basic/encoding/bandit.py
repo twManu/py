@@ -5,6 +5,9 @@ import sys, struct, argparse
 from struct import *
 from field import *
 
+
+g_savefile = "/home/manuchen/.dosbox/bandit/SAVEDATA"
+
 #name : (justice, mercy, courage)
 g_bandit = {
 	"花榮": (91, 75, 84),      
@@ -265,15 +268,24 @@ class banditParser(object):
 						break
 
 	#1 based index
+	#Ret : 0 - fail to update
+	#      1 - successful
 	def brother(self, index):
 		if index and index<=len(self._banditList):
 			self._banditList[index-1].brother()
+			return 1
+		return 0
 
 
 	#1 based index
+	#Ret : 0 - fail to update
+	#      1 - successful
 	def leader(self, index):
 		if index and index<=len(self._banditList):
 			self._banditList[index-1].leader()
+			return 1
+		return 0
+	
 
 
 	#i: 1 based 
@@ -320,12 +332,14 @@ class banditParser(object):
 # Ret : arg - parsed result
 def chk_param():
 	parser = argparse.ArgumentParser()
+	parser.add_argument('-f', action='store', dest='file', default=g_savefile,
+		help='save file, default is '+g_savefile)
 	parser.add_argument('-l', action='store', dest='leader', default=0,
 		help='specify leader by 1-based index')
 	parser.add_argument('-b', action='append', dest='brother', default=[],
 		help='specify brother (multiple times) by 1-based index')
 	parser.add_argument('-q', action='store', dest='query', default='sh',
-		help='s (state) or h (hero), default both')
+		help='s (state) or h (hero), default sh (both)')
 	parser.add_argument('-i', action='append', dest='index', default=[],
 		help='index of object to query')
 	arg=parser.parse_args()
@@ -334,12 +348,15 @@ def chk_param():
 
 #main
 if __name__ == '__main__':
-	bP = banditParser("/home/manuchen/.dosbox/bandit/SAVEDATA")
 	arg = chk_param()
+	modify = 0
+	bP = banditParser(arg.file)
 	if arg.leader:
-		bP.leader(int(arg.leader))
+		modify += bP.leader(int(arg.leader))
 	for bb in arg.brother:
-		bP.brother(int(bb))
+		modify += bP.brother(int(bb))
+	if modify:
+		print 'file should be updated'
 	if 'h' in arg.query:
 		for ii in arg.index:
 			bP.showManIndex(int(ii))
