@@ -123,9 +123,7 @@ class state(field):
 	#1-based index
 	#name to display
 	def __init__(self, f, index):
-		super(state, self).__init__(f, self.FIELD_DESC)
-		self._index = index
-		self._name = '第'+str(index)+'州'
+		super(state, self).__init__(f, self.FIELD_DESC, index, '第'+str(index)+'州')
 
 		
 	#1-based index
@@ -140,15 +138,6 @@ class state(field):
 		self.set('支持', 100)
 		self.set('武器', 100)
 		self.set('戰技', 100)
-
-
-	#1-based
-	def index(self):
-		return self._index
-
-	
-	def name(self):
-		return self._name
 
 
 # each for a man
@@ -183,23 +172,7 @@ class bandit(field):
 	#opened file with cur pos for this man
 	#exclusive 1-based index assigned and name for display
 	def __init__(self, f, index, name=''):
-		super(bandit, self).__init__(f, self.FIELD_DESC)
-		self._index = index
-		self._name = name
-
-
-	#name for display
-	def setName(self, name):
-		self._name = name
-
-
-	#1-based
-	def index(self):
-		return self._index
-
-	
-	def name(self):
-		return self._name
+		super(bandit, self).__init__(f, self.FIELD_DESC, index, name)
 
 
 	#1-based index
@@ -291,7 +264,7 @@ class banditParser(object):
 				self._show1Man(self._banditList[index-1], level)
 		else:
 			for i in range(len(self._banditList)):
-				self._show1Man(self._banditList[index-1], level)
+				self._show1Man(self._banditList[i], level)
 
 
 	#set as brother with 1 based index

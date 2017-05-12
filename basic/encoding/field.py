@@ -9,9 +9,12 @@ class field(object):
 	#desc contains
 	#   desc['fields'] : tuple of each fieldName
 	#   desc[<fieldName>] : unpack parameter 'B', 'H', 'I', or signed version 'b', 'h', 'i'
-	def __init__(self, f, fieldDesc):
+	#index and name are interpretted by parent
+	def __init__(self, f, fieldDesc, index=0, name=''):
 		self._field = {}
 		self._desc = fieldDesc
+		self._index = index
+		self._name = name
 		for ff in fieldDesc['fields']:
 			if fieldDesc[ff] == 'b' or fieldDesc[ff] == 'B':
 				self._field[ff], = struct.unpack(fieldDesc[ff], f.read(1))
@@ -39,10 +42,24 @@ class field(object):
 		for ff in self._desc['fields']:
 			f.write(struct.pack(self._desc[ff], self._field[ff]))
 
-
 	def show(self):
 		for key, value in self._field.iteritems():
 			print key+': '+str(value)
+
+	def setName(self, name):
+		self._name = name
+
+
+	def setIndex(self, index):
+		self._index = index
+
+
+	def name(self):
+		return self._name
+
+
+	def index(self):
+		return self._index
 
 
 #main
