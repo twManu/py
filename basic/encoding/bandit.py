@@ -120,8 +120,12 @@ class state(field):
 	}
 
 	#opened file with cur pos for this man
-	def __init__(self, f):
+	#1-based index
+	#name to display
+	def __init__(self, f, index):
 		super(state, self).__init__(f, self.FIELD_DESC)
+		self._index = index
+		self._name = '第'+str(index)+'州'
 
 		
 	#1-based index
@@ -136,6 +140,15 @@ class state(field):
 		self.set('支持', 100)
 		self.set('武器', 100)
 		self.set('戰技', 100)
+
+
+	#1-based
+	def index(self):
+		return self._index
+
+	
+	def name(self):
+		return self._name
 
 
 # each for a man
@@ -168,8 +181,26 @@ class bandit(field):
 	}
 
 	#opened file with cur pos for this man
-	def __init__(self, f):
+	#exclusive 1-based index assigned and name for display
+	def __init__(self, f, index, name=''):
 		super(bandit, self).__init__(f, self.FIELD_DESC)
+		self._index = index
+		self._name = name
+
+
+	#name for display
+	def setName(self, name):
+		self._name = name
+
+
+	#1-based
+	def index(self):
+		return self._index
+
+	
+	def name(self):
+		return self._name
+
 
 	#1-based index
 	def brother(self, leader=None):
@@ -204,20 +235,18 @@ class banditParser(object):
 	def __init__(self, fname):
 		self._fname = fname
 		#data base
-		self._bandits = {}           #to access by name
 		self._banditList = []        #list of object
 		self._stateList = []         #list of object
 		with open(fname, "rb") as f:
 			f.seek(self.OFFSET_BANDIT, 0)
 			for i in range(self.BANDIT_COUNT):
-				obj = bandit(f)
-				self._bandits[self._lookup(i, obj)] = obj
+				obj = bandit(f, i+1)
+				obj.setName(self._match(i+1, obj))
 				self._banditList.append(obj)
 			f.seek(self.OFFSET_STATE, 0)
 			#state is 0 based
 			for i in range(self.STATE_COUNT):
-				self._stateList.append(state(f))
-
+				self._stateList.append(state(f, i+1))
 
 
 	def update(self):
@@ -229,64 +258,41 @@ class banditParser(object):
 			for ss in self._stateList:
 				ss.write(f)
 
-		
-	def _lookup(self, index, man):
+	#1 based index	
+	def _match(self, index, man):
 		ability = pack('BBB', man.attr('忠義'), man.attr('仁愛'), man.attr('勇氣'))
 		for mm, aa in g_bandit.iteritems():
 			if ability == pack('BBB', aa[0], aa[1], aa[2]):
 				return mm
-		return "第"+str(index+1)+"位"
+		return "第"+str(index)+"位"
+
 
 	#man is already a bandit object
-	def show1Man(self, name, man):
-		print name+" ("+str(man.attr("忠誠"))+")"
-		print '    忠義 仁愛 勇氣 =',
-		print man.attr("忠義"),
-		print man.attr("仁愛"),
-		print man.attr("勇氣"),
-		print "("+pack('BBB', man.attr("忠義"), man.attr("仁愛"), man.attr("勇氣")).encode('hex')+")"
-		print '    力量 技能 智慧 =',
-		print man.attr("力量"),
-		print man.attr("技能"),
-		print man.attr("智慧"),
-		print "("+pack('BBB', man.attr("力量"), man.attr("技能"), man.attr("智慧")).encode('hex')+")"
+	def _show1Man(self, man, level):
+		print '#'+str(man.index())+' '+man.name()+" ("+str(man.attr("忠誠"))+")"
+		if level>=1:
+			print '    忠義 仁愛 勇氣 =',
+			print man.attr("忠義"),
+			print man.attr("仁愛"),
+			print man.attr("勇氣"),
+			print "("+pack('BBB', man.attr("忠義"), man.attr("仁愛"), man.attr("勇氣")).encode('hex')+")"
+			print '    力量 技能 智慧 =',
+			print man.attr("力量"),
+			print man.attr("技能"),
+			print man.attr("智慧"),
+			print "("+pack('BBB', man.attr("力量"), man.attr("技能"), man.attr("智慧")).encode('hex')+")"
 
 
-	#show a man or all
-	def showMan(self, name):
-		if name:
-			if self._bandits.has_key(name):
-				self.show1Man(name, self._bandits[name])
-			else:
-				print "unknown "+name
-		else:
-			for i in range(len(self._banditList)):
-				man = self._banditList[i]
-				for mm, obj in self._bandits.iteritems():
-					if obj==man:
-						#show 1 based
-						print '#'+str(i+1),
-						self.show1Man(mm, obj)
-						break
-	#show man by 1-based index
-	def showManIndex(self, index):
+	#show single man by 1-based index
+	#level: int 0, 1 or 2
+	def showManIndex(self, index, level):
 		if index:
 			if index<=len(self._banditList):
-				man = self._banditList[index-1]
-				for mm, obj in self._bandits.iteritems():
-					if obj==man:
-						#show 1 based
-						self.show1Man(mm, obj)
-						break
+				self._show1Man(self._banditList[index-1], level)
 		else:
 			for i in range(len(self._banditList)):
-				man = self._banditList[i]
-				for mm, obj in self._bandits.iteritems():
-					if obj==man:
-						#show 1 based
-						print '#'+str(i+1),
-						self.show1Man(mm, obj)
-						break
+				self._show1Man(self._banditList[index-1], level)
+
 
 	#set as brother with 1 based index
 	#Ret : 0 - fail to update
@@ -319,8 +325,8 @@ class banditParser(object):
 
 
 	#i: 1 based 
-	def show1State(self, stateObj, i):
-		print str(i)+" 州"
+	def show1State(self, stateObj, level):
+		print stateObj.name(),
 		print '  黃金 :',
 		print stateObj.attr('黃金'),
 		print '  糧草: ',
@@ -331,7 +337,9 @@ class banditParser(object):
 		print stateObj.attr('毛皮'),
 		print '  物價 :',
 		print stateObj.attr('物價')
-		print '  支持 :',
+		if not level:
+			return
+		print '        支持 :',
 		print stateObj.attr('支持'),
 		print '  治水: ',
 		print stateObj.attr('治水'),
@@ -341,7 +349,9 @@ class banditParser(object):
 		print stateObj.attr('毛皮'),
 		print '  財富 :',
 		print stateObj.attr('財富')
-		print '  武器 :',
+		if level<2:
+			return
+		print '        武器 :',
 		print stateObj.attr('武器'),
 		print '  戰技: ',
 		print stateObj.attr('戰技'),
@@ -349,13 +359,14 @@ class banditParser(object):
 
 
 	#show a state or all(0)
-	def showState(self, i):
+	def showState(self, i, level):
 		if i:
-			self.show1State(self._stateList[i-1], i)
+			self.show1State(self._stateList[i-1], level)
 		else:
+			#now i=0
 			for ss in self._stateList:
 				i += 1
-				self.show1State(ss, i)
+				self.show1State(ss, level)
 
 
 # Parse argument and make sure there is action to be taken
@@ -374,6 +385,8 @@ def chk_param():
 		help='s (state) or h (hero), default sh (both)')
 	parser.add_argument('-i', action='append', dest='index', default=[],
 		help='index of object to query')
+	parser.add_argument('-v', action='store', dest='level', default=0,
+		help='verbose level, 0, 1 or 2')
 	arg=parser.parse_args()
 	return arg
 
@@ -395,8 +408,8 @@ if __name__ == '__main__':
 	#still response to query
 	if 'h' in arg.query:
 		for ii in arg.index:
-			bP.showManIndex(int(ii))
+			bP.showManIndex(int(ii), arg.level)
 	if 's' in arg.query:
 		for ii in arg.index:
-			bP.showState(int(ii))
+			bP.showState(int(ii), arg.level)
 
