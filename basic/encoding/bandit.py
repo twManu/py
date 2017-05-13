@@ -178,6 +178,10 @@ class bandit(field):
 
 
 	def hero(self):
+		if self.attr('角色') & 2:
+			self.set('體力', 255)
+		else:
+			self.set('體力', 100)
 		self.set('忠誠', 100)
                 self.set('土兵', 100)
 
