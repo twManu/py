@@ -63,6 +63,8 @@ g_bandit = {
 	"杜微": (48, 34, 76),      
 	"王進": (79, 91, 73),      
 	"瓊英": (92, 73, 77),
+	" ": (39, 42, 57),
+	"燕 " : (46, 41, 60),
 	"魯智深": (63, 74, 88),
 	"盧俊義": (68, 63, 81),
 	"時文彬": (44, 60, 27),
@@ -175,15 +177,18 @@ class bandit(field):
 		super(bandit, self).__init__(f, self.FIELD_DESC, index, name)
 
 
-	#1-based index
+	def hero(self):
+		self.set('忠誠', 100)
+                self.set('土兵', 100)
+
+
 	def brother(self, leader=None):
+		self.hero()
 		self.set('體力', 255)
 		self.set('體力上限', 255)
 		self.set('力量', 100)
 		self.set('技能', 127)
 		self.set('智慧', 127)
-		self.set('忠誠', 100)
-		self.set('土兵', 100)
 		if not leader:
 			role = self.attr('角色')
 			role |= 2
@@ -206,6 +211,10 @@ class banditParser(object):
 	BANDIT_COUNT = 255
 	STATE_COUNT = 49
 	def __init__(self, fname):
+		#if leader specified, remember country
+		self._myCountry = 0          #country of leader
+		self._leader = None          #leader object
+		self._citizenList = []       #list of object in country
 		self._fname = fname
 		#data base
 		self._banditList = []        #list of object
@@ -254,6 +263,15 @@ class banditParser(object):
 			print man.attr("技能"),
 			print man.attr("智慧"),
 			print "("+pack('BBB', man.attr("力量"), man.attr("技能"), man.attr("智慧")).encode('hex')+")"
+		if level>=2:
+			print '    國家 地區 =',
+			print man.attr("國家"),
+			#turn 0 based state to 1 based
+			print int(man.attr("地區"))+1
+			print '    體力 土兵 角色 =',
+			print man.attr("體力"),
+			print man.attr("土兵"),
+			print "0x{:x}".format(man.attr("角色"))
 
 
 	#show single man by 1-based index
@@ -278,11 +296,18 @@ class banditParser(object):
 
 
 	#set as leader with 1 based index
+	#do once at most
 	#Ret : 0 - fail to update
 	#      1 - successful
 	def leader(self, index):
 		if index and index<=len(self._banditList):
+			self._leader = self._banditList[index-1]
 			self._banditList[index-1].leader()
+			self._myCountry = self._leader.attr('國家')
+			for mm in self._banditList:
+				if self._leader != mm and mm.attr('國家')==self._myCountry:
+					mm.hero()
+					self._citizenList.append(mm)
 			return 1
 		return 0
 	
@@ -341,6 +366,33 @@ class banditParser(object):
 				i += 1
 				self.show1State(ss, level)
 
+	#need -l specified which creates database
+	def showCitizen(self, level):
+		for mm in self._citizenList:
+			self._show1Man(mm, level)
+
+
+	#matchList is string of multiple value, lookup each 3 value
+	def match(self, matchList):
+		values = matchList.split()
+		count = len(values) / 3
+		for start in range(count):
+			found = 0
+			print 'searching for',
+			print values[start*3],
+			print values[start*3+1],
+			print values[start*3+2],
+			print '...',
+			for mm in self._banditList:
+				if mm.attr('忠義')==int(values[start*3]) and\
+				   mm.attr('仁愛')==int(values[start*3+1]) and\
+				   mm.attr('勇氣')==int(values[start*3+2]):
+					found = 1
+					self._show1Man(mm, 0)
+					break
+			if not found:
+				print 'failed !!!'
+
 
 # Parse argument and make sure there is action to be taken
 # Ret : arg - parsed result
@@ -354,12 +406,14 @@ def chk_param():
 		help='specify brother (multiple times) by 1-based index')
 	parser.add_argument('-s', action='append', dest='state', default=[],
 		help='specify state (multiple times) by 1-based index')
-	parser.add_argument('-q', action='store', dest='query', default='sh',
-		help='s (state) or h (hero), default sh (both)')
+	parser.add_argument('-q', action='store', dest='query', default='shc',
+		help='s (state), c (citizen), or h (hero), default sh (both)')
 	parser.add_argument('-i', action='append', dest='index', default=[],
 		help='index of object to query')
 	parser.add_argument('-v', action='store', dest='level', default=0,
 		help='verbose level, 0, 1 or 2')
+	parser.add_argument('-m', action='store', dest='match', default='',
+		help='match justice mercy courage 3 at a time, say -m 39 42 57')
 	arg=parser.parse_args()
 	return arg
 
@@ -369,6 +423,9 @@ if __name__ == '__main__':
 	arg = chk_param()
 	modify = 0
 	bP = banditParser(arg.file)
+	if arg.match:
+		bP.match(arg.match)
+		sys.exit(0)
 	if arg.leader:
 		modify += bP.leader(int(arg.leader))
 	for bb in arg.brother:
@@ -379,10 +436,12 @@ if __name__ == '__main__':
 		print 'writing file'
 		bP.update()
 	#still response to query
+	if 'c' in arg.query:
+		bP.showCitizen(int(arg.level))
 	if 'h' in arg.query:
 		for ii in arg.index:
-			bP.showManIndex(int(ii), arg.level)
+			bP.showManIndex(int(ii), int(arg.level))
 	if 's' in arg.query:
 		for ii in arg.index:
-			bP.showState(int(ii), arg.level)
+			bP.showState(int(ii), int(arg.level))
 
