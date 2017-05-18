@@ -276,6 +276,8 @@ class banditParser(object):
 			print man.attr("體力"),
 			print man.attr("土兵"),
 			print "0x{:x}".format(man.attr("角色"))
+			print '    未知20 未知21',
+			print "0x{0:x} 0x{1:x}".format(man.attr("未知20"),man.attr("未知21"))
 
 
 	#show single man by 1-based index
