@@ -412,6 +412,8 @@ def chk_param():
 		help='specify brother (multiple times) by 1-based index')
 	parser.add_argument('-s', action='append', dest='state', default=[],
 		help='specify state (multiple times) by 1-based index')
+	parser.add_argument('-S', action='append', dest='stateRange', default=[],
+		help='specify "stateA stateB" (multiple times) by 1-based index')
 	parser.add_argument('-q', action='store', dest='query', default='shc',
 		help='s (state), c (citizen), or h (hero), default sh (both)')
 	parser.add_argument('-i', action='append', dest='index', default=[],
@@ -436,6 +438,11 @@ if __name__ == '__main__':
 		modify += bP.leader(int(arg.leader))
 	for bb in arg.brother:
 		modify += bP.brother(int(bb))
+	for sr in arg.stateRange:
+		start = int(sr.split()[0])
+		end = int(sr.split()[1])+1
+		for ss in range(start, end):
+			modify += bP.state(ss)
 	for ss in arg.state:
 		modify += bP.state(int(ss))
 	if modify:
