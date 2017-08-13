@@ -28,6 +28,12 @@ class field(object):
             return self._field[key]
         return None
 
+    #update value in memory
+    def set(self, key, value):
+        if self._field.has_key(key):
+            self._field[key] = value
+
+
     def show(self):
         for key, value in self._field.iteritems():
             print key+': '+str(value)
