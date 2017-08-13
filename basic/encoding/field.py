@@ -17,11 +17,14 @@ class field(object):
 		self._name = name
 		for ff in fieldDesc['fields']:
 			if fieldDesc[ff] == 'b' or fieldDesc[ff] == 'B':
-				self._field[ff], = struct.unpack(fieldDesc[ff], f.read(1))
+				#self._field[ff], = struct.unpack(fieldDesc[ff], f.read(1))
+				self._field[ff] = struct.unpack(fieldDesc[ff], f.read(1))[0]
 			elif fieldDesc[ff] == 'h' or fieldDesc[ff] == 'H':
-				self._field[ff], = struct.unpack(fieldDesc[ff], f.read(2))
+				#self._field[ff], = struct.unpack(fieldDesc[ff], f.read(2))
+				self._field[ff] = struct.unpack(fieldDesc[ff], f.read(2))[0]
 			elif fieldDesc[ff] == 'i' or fieldDesc[ff] == 'I':
-				self._field[ff], = struct.unpack(fieldDesc[ff], f.read(4))
+				#self._field[ff], = struct.unpack(fieldDesc[ff], f.read(4))
+				self._field[ff] = struct.unpack(fieldDesc[ff], f.read(4))[0]
 			else:
 				raise NameError('unknown field type')
 
