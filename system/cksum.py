@@ -7,12 +7,7 @@ import os, sys, re, argparse, glob, commands, struct
 if __name__ == '__main__':
 	# supported sum size
 	validSum = ('1', '2', '4')
-	# type char for supported sum size
-	sumDict = {
-		  '1': 'B'
-		, '2': 'H'
-		, '4': 'I'
-	}
+	#
 	def check_param():
 		defaultSumIndex = 0               #default check sume size (index into validSum)
 		#
@@ -35,13 +30,10 @@ if __name__ == '__main__':
 		parser.add_argument('-s', action='store', dest='size_of_sum', default=validSum[defaultSumIndex],
         	        help=msg)
 	        arg=parser.parse_args()
-		# look up type char
-		arg.typeChar = None
 		if not arg.size_of_sum in validSum:
 			print 'Size of check sum '+arg.size_of_sum+' not supported'
 			sys.exit(1)
 		else:
-			arg.typeChar = sumDict[arg.size_of_sum]
 			arg.size_of_sum = int(arg.size_of_sum)
 		# check file name
 		if not arg.input_file_name:
@@ -53,9 +45,8 @@ if __name__ == '__main__':
         	return arg
 
 	arg=check_param()
-	if not arg.typeChar:
-		sys.exit(1)
 	sum = 0
+	# use little endian for multiple byte
 	with open(arg.input_file_name, "rb") as f:
 		#check size
 		f.seek(0, os.SEEK_END)
@@ -63,16 +54,20 @@ if __name__ == '__main__':
 		f.seek(0, os.SEEK_SET)
 		print ' size of '+arg.input_file_name+' is '+str(fsize)
 		while fsize:
+			#cal nr of byte to read this time
 			if fsize >= arg.size_of_sum:
-				sum += struct.unpack(arg.typeChar, f.read(arg.size_of_sum))[0]
-				fsize -= arg.size_of_sum
+				thisRead = arg.size_of_sum
 			else:
-				if fsize >= 2:
-					sum += struct.unpack('H', f.read(2))[0]
-					fsize -= 2
-				if fsize:
-					sum += struct.unpack('B', f.read(1))[0]
-					fsize = 0
+				thisRead = fsize
+			fsize -= thisRead
+			shift = 0
+			val = 0
+			#LSB first and in low bytes
+			while thisRead:
+				val += struct.unpack('B', f.read(1))[0] << shift
+				shift += 8
+				thisRead -= 1
+			sum += val
 	if 1 == arg.size_of_sum:
 		sum &= 0xff
 		print('sum = 0x%2X'% (sum))
