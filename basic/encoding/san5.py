@@ -193,16 +193,17 @@ class san5Parser(object):
 		return obj
 
 
-	# In :
-	#       which - if given, show the man in the list
+	# In : peopleList - 1-based list. if provided, show the man (str) in the list
 	#               otherwise, show all
-	def showPeople(self, which=[], level=0):
-		for obj in self._banditList:
-			if which:
-				if obj.index() in which:
-					self._showPerson(obj, level)
-			else:
-				self._showPerson(obj, level)
+	def showPeople(self, peopleList, level=0):
+		if not peopleList:
+			peopleList = range(1, len(self._banditList)+1)
+		for man in peopleList:
+			indexInList = int(man) - 1
+			if indexInList >= len(self._banditList):
+				print 'Invalid index '+man+' ...skipped !!!'
+				continue
+			self._showPerson(self._banditList[indexInList], level)
 
 
 	# show info by level
@@ -232,6 +233,17 @@ class san5Parser(object):
 			for obj in self._banditByCountry[country]:
 				self._showPerson(obj, level)
 
+	#country is single int
+	def modifyCountry(self, country):
+		if country in self._banditByCountry:
+			print 'There are', len(self._banditByCountry[country]), 'people in country', country
+			#construct the list
+			theList = []
+			for obj in  self._banditByCountry[country]:
+				theList.append(obj.index())
+			self._refillPerson(theList)
+			#todo save
+			self.showCountry(country, 1)
 
 	# stateList is list in state in string
 	def showState(self, stateList, level=0):
@@ -241,6 +253,37 @@ class san5Parser(object):
 				print 'There are', len(self._banditByState[state]), 'people in state', state
 				for obj in self._banditByState[state]:
 					self._showPerson(obj, level)
+		
+
+	# peopleList is a list of people in str
+	def _refillPerson(self, peopleList):
+		for man in peopleList:
+			indexInList = int(man) - 1
+			if indexInList >= len(self._banditList):
+				print 'Invalid index '+man+' ...skipped !!!'
+				continue
+			obj = self._banditList[indexInList]
+			#print "manutest", obj.index(), obj.attr('royalty')
+			#skip man in the field
+			if obj.attr('royalty') < 60:
+				continue
+			if obj.attr('wisdom') >= 90 and obj.attr('politic') >= 80:
+				obj.set('soldiar', 20000)
+			elif obj.attr('strength') >= 90:
+				obj.set('soldiar', 20000)
+			elif obj.attr('strength') >= 80:
+				obj.set('soldiar', 8000)
+			else:
+				obj.set('soldiar', 0)
+			#set training only if soldiar
+			if obj.attr('soldiar'):
+				obj.set('training', 100)
+				obj.set('moral', 100)
+			else:
+				obj.set('training', 0)
+				obj.set('moral', 0)
+			obj.set('done', 0)
+			obj.set('royalty', 100)
 
 
 # Parse argument and make sure there is action to be taken
@@ -269,6 +312,8 @@ def chk_param():
 		help='number of people to load')
 	parser.add_argument('-c', action='store', dest='showCountry', default=0,
 		help='show people match given country')
+	parser.add_argument('-C', action='store', dest='modifyCountry', default=0,
+		help='modify people match given country')
 	arg=parser.parse_args()
 	return arg
 
@@ -277,9 +322,13 @@ def chk_param():
 if __name__ == '__main__':
 	arg = chk_param()
 	sP = san5Parser(arg.file, int(arg.people))
-	if arg.showCountry:
+	if arg.modifyCountry:
+		sP.modifyCountry(int(arg.modifyCountry) )
+	elif arg.showCountry:
 		sP.showCountry(int(arg.showCountry), int(arg.level))
 	elif arg.state:
 		sP.showState(arg.state, int(arg.level))
+	elif arg.index:
+		sP.showPeople(arg.index, int(arg.level))
 	else:
 		sP.showPeople([], int(arg.level))
