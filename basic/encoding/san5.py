@@ -5,27 +5,25 @@ import sys, struct, argparse
 from struct import *
 from field import *
 
-#       year, nr. of people
-dataBase = {
-	(189, 188)
-	, (196, 245)
-}
-
 g_savefile = "/home/manuchen/.dosbox/san5/SAVEDATA.S5P"
 
-#name : (justice, mercy, courage)
+#name : (strength, charm)
 g_bandit = {
-	"花榮": (91, 75, 84),      
-	"林沖": (100, 61, 80),     
+	"關": (99, 96),      
+	"張": (99, 44),
+	"劉": (79, 99),
+	"張文遠": (95, 85)
+}
+
+"""
 	"秦明": (79, 78, 90),     
 	"宋江": (81, 100, 62),     
-	"關勝": (75, 90, 83),      
 	"史進": (74, 69, 95),      
 	"吳用": (86, 70, 58),      
 	"晁蓋": (96, 68, 76),     
 	"楊志": (97, 58, 79),   
 	"武松": (68, 55, 98),    
-	"張清": (72, 66, 83),      
+	"清": (72, 66, 83),      
 	"董平": (82, 51, 73),      
 	"孫立": (54, 68, 72),      
 	"索超": (62, 41, 89),      
@@ -97,7 +95,7 @@ g_bandit = {
 
 
 g_leader = ("林沖", "宋江", "史進", "晁蓋", "楊志", "魯智深", "武松")
-
+"""
 
 # each for a man
 class bandit(field):
@@ -165,22 +163,35 @@ class san5Parser(object):
 			f.seek(self.OFFSET_BANDIT, 0)
 			for i in range(self.BANDIT_COUNT):
 				obj = bandit(f, i+1)
-				if obj.attr('strength'):
-					self._banditList.append(obj)
-					country = obj.attr('country')
-					#create list if not present
-					if not country in self._banditByCountry:
-						self._banditByCountry[country] = []
-					self._banditByCountry[country].append(obj)
-					state = obj.attr('state')
-					#create list if not present
-					if not state in self._banditByState:
-						self._banditByState[state] = []
-					self._banditByState[state].append(obj)
-				else:
-					#invalid character, stop
+				if not self._insertPerson(obj):
 					self.BANDIT_COUNT = i
 					break
+
+
+	# insert into database
+	# Ret : obj - object inserted
+	#       None - fail to insert owning to invalid value
+	def _insertPerson(self, obj):
+		# determine by valid 'strength'
+		if not obj.attr('strength'):
+			return None
+		self._banditList.append(obj)
+		country, state = obj.attr('country'), obj.attr('state')
+		#create list if not present
+		if not country in self._banditByCountry:
+			self._banditByCountry[country] = []
+		self._banditByCountry[country].append(obj)
+		#create list if not present
+		if not state in self._banditByState:
+			self._banditByState[state] = []
+		self._banditByState[state].append(obj)
+		# check known characters
+		for name in g_bandit:
+			if g_bandit[name][0] == obj.attr('strength') and\
+			   g_bandit[name][1] == obj.attr('charm'):
+				obj.setName(name)
+		return obj
+
 
 	# In :
 	#       which - if given, show the man in the list
@@ -197,7 +208,12 @@ class san5Parser(object):
 	# show info by level
 	# level 0 with minimal info
 	def _showPerson(self, obj, level=0):
-		print '******** no', obj.index(), ', country=', obj.attr('country'), ', state=', obj.attr('state')
+		name = obj.name()
+		if name:
+			print '*****'+name,
+		else:
+			print '******** no',
+		print obj.index(), ', country=', obj.attr('country'), ', state=', obj.attr('state')
 		print obj.attr('strength'),
 		print obj.attr('wisdom'),
 		print obj.attr('politic'),
