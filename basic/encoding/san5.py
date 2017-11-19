@@ -168,6 +168,13 @@ class san5Parser(object):
 					break
 
 
+	def update(self):
+		with open(self._fname, "r+b") as f:
+			f.seek(self.OFFSET_BANDIT, 0)
+			for hh in self._banditList:
+				hh.write(f)
+
+
 	# insert into database
 	# Ret : obj - object inserted
 	#       None - fail to insert owning to invalid value
@@ -243,7 +250,8 @@ class san5Parser(object):
 				theList.append(obj.index())
 			self._refillPerson(theList)
 			#todo save
-			self.showCountry(country, 1)
+			self.update()
+			#self.showCountry(country, 1)
 
 	# stateList is list in state in string
 	def showState(self, stateList, level=0):
