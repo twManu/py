@@ -108,8 +108,7 @@ class bandit(field):
 			, 'strength', 'wisdom', 'politic', 'charm'
 			, 'training', 'moral', 'title', 'royalty'
 			, 'state', 'country', 'n4', 'n5'
-			, 'n6', 'n7', 'n8', 'n9'
-			, 'n10', 'n11', 'n12'),
+			, 'n6', 'n7', 'n8', 'skill'),
 		'n-4': 'B',
 		'n-3': 'B',
 		'n-2': 'B',
@@ -134,10 +133,7 @@ class bandit(field):
 		'n6': 'B',
 		'n7': 'B',
 		'n8': 'B',
-		'n9': 'B',
-		'n10': 'B',
-		'n11': 'B',
-		'n12': 'B'
+		'skill': 'I'
 	}
 
 	#opened file with cur pos for this man
@@ -225,12 +221,15 @@ class san5Parser(object):
 		print obj.attr('strength'),
 		print obj.attr('wisdom'),
 		print obj.attr('politic'),
-		print obj.attr('charm')
+		print obj.attr('charm'),
 		if level >= 1:
+			print 'skill=', format(obj.attr('skill'), '#010x')
 			print 'soldiar= ', obj.attr('soldiar'), ', training= ', obj.attr('training'), ', moral= ', obj.attr('moral'),
 			if 0x04 & obj.attr('done'): print 'done'
 			else: print 'yet'
 			print 'proies= ', obj.attr('proies'), ', experience= ', obj.attr('experience'), ', royalty= ', obj.attr('royalty')
+		else:
+			print
 
 
 	#country is single int
@@ -277,8 +276,10 @@ class san5Parser(object):
 				continue
 			if obj.attr('wisdom') >= 90 and obj.attr('politic') >= 80:
 				obj.set('soldiar', 20000)
+				obj.set('skill', 0xffffffff)
 			elif obj.attr('strength') >= 90:
 				obj.set('soldiar', 20000)
+				obj.set('skill', 0xffffffff)
 			elif obj.attr('strength') >= 80:
 				obj.set('soldiar', 8000)
 			else:
