@@ -102,14 +102,18 @@ class bandit(field):
 	BANDIT_SIZE = 31
 	#bit 2 (4) is done
 	FIELD_DESC = {
-		'fields': ('proies', 'experience'
+		'fields': ('n-4', 'n-3', 'n-2', 'n-1'
+			, 'proies', 'experience'
 			, 'soldiar', 'life-assume', 'done'
 			, 'strength', 'wisdom', 'politic', 'charm'
-			, 'training', 'moral', 'n3', 'royalty'
+			, 'training', 'moral', 'title', 'royalty'
 			, 'state', 'country', 'n4', 'n5'
 			, 'n6', 'n7', 'n8', 'n9'
-			, 'n10', 'n11', 'n12', 'n13'
-			, 'n14', 'n15', 'n16'),
+			, 'n10', 'n11', 'n12'),
+		'n-4': 'B',
+		'n-3': 'B',
+		'n-2': 'B',
+		'n-1': 'B',
 		'proies': 'H',
 		'experience': 'H',
 		'soldiar': 'H',
@@ -121,7 +125,7 @@ class bandit(field):
 		'charm': 'B',
 		'training': 'B',
 		'moral': 'B',
-		'n3': 'B',
+		'title': 'B',
 		'royalty': 'B',
 		'state': 'B',
 		'country': 'B',
@@ -133,11 +137,7 @@ class bandit(field):
 		'n9': 'B',
 		'n10': 'B',
 		'n11': 'B',
-		'n12': 'B',
-		'n13': 'B',
-		'n14': 'B',
-		'n15': 'B',
-		'n16': 'B'
+		'n12': 'B'
 	}
 
 	#opened file with cur pos for this man
@@ -148,7 +148,7 @@ class bandit(field):
 
 # take care of file
 class san5Parser(object):
-	OFFSET_BANDIT = 0x1ac2
+	OFFSET_BANDIT = 0x1abe
 	BANDIT_COUNT = 300
 	def __init__(self, fname, count=BANDIT_COUNT):
 		#if leader specified, remember country
