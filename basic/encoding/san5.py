@@ -139,12 +139,45 @@ class bandit(field):
 	#opened file with cur pos for this man
 	#exclusive 1-based index assigned and name for display
 	def __init__(self, f, index, name=''):
+		self._misc = None
 		super(bandit, self).__init__(f, self.FIELD_DESC, index, name)
+
+
+class misc(field):
+	FIELD_DESC = {
+		'fields': ('body', 'n1', 'n2', 'n3'
+			, 'n4', 'n5', 'n6', 'n7'
+			, 'n8', 'n9', 'n10', 'n11'
+			, 'n12', 'n13', 'n14', 'n15'
+			, 'n16', 'n17'),
+		'body': 'B',
+		'n1': 'B',
+		'n2': 'B',
+		'n3': 'B',
+		'n4': 'B',
+		'n5': 'B',
+		'n6': 'B',
+		'n7': 'B',
+		'n8': 'B',
+		'n9': 'B',
+		'n10': 'B',
+		'n11': 'B',
+		'n12': 'B',
+		'n13': 'B',
+		'n14': 'B',
+		'n15': 'B',
+		'n16': 'B',
+		'n17': 'B'
+	}
+
+	def __init__(self, f, index, name=''):
+		super(misc, self).__init__(f, self.FIELD_DESC, index, name)
 
 
 # take care of file
 class san5Parser(object):
 	OFFSET_BANDIT = 0x1abe
+	OFFSET_MISC = 0x8690
 	BANDIT_COUNT = 300
 	def __init__(self, fname, count=BANDIT_COUNT):
 		#if leader specified, remember country
@@ -162,6 +195,10 @@ class san5Parser(object):
 				if not self._insertPerson(obj):
 					self.BANDIT_COUNT = i
 					break
+			f.seek(self.OFFSET_MISC, 0)
+			for i in range(self.BANDIT_COUNT):
+				obj = misc(f, i+1)
+				self._banditList[i]._misc = obj
 
 
 	def update(self):
@@ -169,6 +206,9 @@ class san5Parser(object):
 			f.seek(self.OFFSET_BANDIT, 0)
 			for hh in self._banditList:
 				hh.write(f)
+			f.seek(self.OFFSET_MISC, 0)
+			for hh in self._banditList:
+				hh._misc.write(f)
 
 
 	# insert into database
@@ -217,7 +257,8 @@ class san5Parser(object):
 			print '*****'+name,
 		else:
 			print '******** no',
-		print obj.index(), ', country=', obj.attr('country'), ', state=', obj.attr('state')
+		print obj.index(), ', country=', obj.attr('country'), ', state=', obj.attr('state'),
+		print ', body=', obj._misc.attr('body')
 		print obj.attr('strength'),
 		print obj.attr('wisdom'),
 		print obj.attr('politic'),
@@ -291,6 +332,7 @@ class san5Parser(object):
 			else:
 				obj.set('training', 0)
 				obj.set('moral', 0)
+			obj._misc.set('body', 100)
 			obj.set('done', 0)
 			obj.set('royalty', 100)
 
