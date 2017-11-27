@@ -15,88 +15,6 @@ g_bandit = {
 	"張文遠": (95, 85)
 }
 
-"""
-	"秦明": (79, 78, 90),     
-	"宋江": (81, 100, 62),     
-	"史進": (74, 69, 95),      
-	"吳用": (86, 70, 58),      
-	"晁蓋": (96, 68, 76),     
-	"楊志": (97, 58, 79),   
-	"武松": (68, 55, 98),    
-	"清": (72, 66, 83),      
-	"董平": (82, 51, 73),      
-	"孫立": (54, 68, 72),      
-	"索超": (62, 41, 89),      
-	"朱同": (59, 72, 53),      
-	"李云": (42, 73, 54),      
-	"王煥": (77, 41, 50),      
-	"朱武": (72, 50, 44),      
-	"徐寧": (54, 53, 58),      
-	"王英": (45, 31, 69),      
-	"周通": (62, 31, 41),      
-	"劉唐": (35, 27, 71),      
-	"鄧飛": (32, 29, 59),      
-	"黃安": (70, 35, 53),      
-	"蘇定": (40, 32, 64),      
-	"蔡京": (84, 29, 20),      
-	"楊春": (32, 37, 61),      
-	"陳達": (53, 25, 36),      
-	"李吉": (29, 20, 23),      
-	"王倫": (53, 36, 62),      
-	"朱貴": (76, 42, 22),      
-	"杜遷": (46, 27, 29),      
-	"宋萬": (34, 25, 28),      
-	"鄧龍": (24, 10, 26),      
-	"李鬼": (17, 14, 28),      
-	"薛永": (38, 52, 43),      
-	"高濂": (67, 46, 82),      
-	"雷橫": (83, 32, 55),      
-	"黃信": (59, 43, 80),
-	"裴宣": (45, 68, 49),      
-	"楊雄": (41, 64, 56),      
-	"龔旺": (40, 39, 48),      
-	"鮑旭": (31, 28, 50),      
-	"河濤": (44, 18, 38),      
-	"劉高": (35, 12, 10),      
-	"張保": (18, 16, 29),      
-	"淩振": (40, 52, 29),      
-	"楊林": (46, 29, 38),      
-	"丘岳": (75, 39, 61),      
-	"燕青": (90, 54, 65),      
-	"杜微": (48, 34, 76),      
-	"王進": (79, 91, 73),      
-	"瓊英": (92, 73, 77),
-	" ": (39, 42, 57),
-	"燕 " : (46, 41, 60),
-	"魯智深": (63, 74, 88),
-	"盧俊義": (68, 63, 81),
-	"時文彬": (44, 60, 27),
-	"阮小七": (50, 42, 38),      
-	"宿元景": (73, 94, 40),      
-	"單廷珪": (71, 54, 50),
-	"張蒙方": (24, 20, 42),
-	"張叔夜": (60, 79, 42),     
-	"魏定國": (52, 73, 51),      
-	"牛邦喜": (50, 33, 36),      
-	"張世開": (35, 26, 27),      
-	"王定六": (20, 38, 23),      
-	"張文遠": (16, 43, 20),      
-	"西門慶": (14, 32, 25),      
-	"郝思文": (45, 32, 36),
-	"鈕文忠": (84, 29, 56),      
-	"史文恭": (60, 33, 82),      
-	"蕭嘉穗": (87, 70, 73),      
-	"潘巧雲": (10, 22, 10),      
-	"季三思": (42, 28, 51),      
-	"崔道成": (25, 20, 57),      
-	"丘小乙": (19, 12, 40),
-	"許貫忠": (75, 88, 79)      
-}
-
-
-g_leader = ("林沖", "宋江", "史進", "晁蓋", "楊志", "魯智深", "武松")
-"""
-
 # each for a man
 class bandit(field):
 	BANDIT_SIZE = 31
@@ -179,6 +97,7 @@ class san5Parser(object):
 	OFFSET_BANDIT = 0x1abe
 	OFFSET_MISC = 0x8690
 	BANDIT_COUNT = 300
+	MAX_SOLDIAR = 20000
 	def __init__(self, fname, count=BANDIT_COUNT):
 		#if leader specified, remember country
 		self._fname = fname
@@ -234,6 +153,29 @@ class san5Parser(object):
 			   g_bandit[name][1] == obj.attr('charm'):
 				obj.setName(name)
 		return obj
+
+	# In : broList - list of 1-based index (character) to add to country
+	#
+	def moveBrother2Country(self, broList, country):
+		if not country in self._banditByCountry:
+			print 'Invalid country'
+			return
+		toState = 0
+		for man in self._banditByCountry[country]:
+			toState = man.attr('state')
+			break
+		if not toState:
+			print 'Fail to get the state of the first object'
+			return
+		for bro in broList:
+			print 'modifying people['+bro+'] to state '+str(toState)
+			indexInList = int(bro) - 1
+			if indexInList >= len(self._banditList):
+				print 'Invalid index '+bro+' ...skipped !!!'
+				continue
+			self._banditList[indexInList].set('country', country)
+			self._banditList[indexInList].set('state', toState)
+		self.update()
 
 
 	# In : peopleList - 1-based list. if provided, show the man (str) in the list
@@ -316,17 +258,21 @@ class san5Parser(object):
 			if obj.attr('royalty') < 60:
 				continue
 			if obj.attr('wisdom') >= 90 and obj.attr('politic') >= 80:
-				obj.set('soldiar', 20000)
-				obj.set('skill', 0xffffffff)
+				obj.set('soldiar', self.MAX_SOLDIAR)
 			elif obj.attr('strength') >= 90:
-				obj.set('soldiar', 20000)
-				obj.set('skill', 0xffffffff)
+				obj.set('soldiar', self.MAX_SOLDIAR)
+			elif obj.attr('strength')+obj.attr('wisdom') >= 160:
+				obj.set('soldiar', self.MAX_SOLDIAR)
 			elif obj.attr('strength') >= 80:
+				obj.set('soldiar', 8000)
+			elif obj.attr('strength')+obj.attr('wisdom') >= 150:
 				obj.set('soldiar', 8000)
 			else:
 				obj.set('soldiar', 0)
 			#set training only if soldiar
 			if obj.attr('soldiar'):
+				if obj.attr('soldiar') == self.MAX_SOLDIAR:
+					obj.set('skill', 0xffffffff)
 				obj.set('training', 100)
 				obj.set('moral', 100)
 			else:
@@ -375,6 +321,8 @@ if __name__ == '__main__':
 	sP = san5Parser(arg.file, int(arg.people))
 	if arg.modifyCountry:
 		sP.modifyCountry(int(arg.modifyCountry) )
+	elif arg.brother and arg.leader:
+		sP.moveBrother2Country(arg.brother, int(arg.leader))
 	elif arg.showCountry:
 		sP.showCountry(int(arg.showCountry), int(arg.level))
 	elif arg.state:
