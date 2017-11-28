@@ -1,19 +1,52 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys, struct, argparse
+import sys, struct, argparse, os
 from struct import *
 from field import *
 
-g_savefile = "/home/manuchen/.dosbox/san5/SAVEDATA.S5P"
+g_savefile = [
+	  "/home/manuchen/.dosbox/san5/SAVEDATA.S5P"
+	, "C:\Users\User\Documents\san5\SAN5\SAVEDATA.S5P"
+]
 
-#name : (strength, charm)
+#name : (武力, 魅力)
 g_bandit = {
-	"關": (99, 96),      
-	"張": (99, 44),
-	"劉": (79, 99),
-	"張文遠": (95, 85)
+	"關羽": (99, 96),      
+	"張飛": (99, 44),
+	"劉備": (79, 99),
+	"張遼": (95, 85)
 }
+"""
+	趙雲
+	黃忠
+	馬超
+	魏延
+	甘寧
+	許褚
+	太史慈
+	呂布
+	典韋
+	文醜
+	顏良
+	夏侯惇
+	夏侯淵
+	徐晃
+	張郃
+	龐德
+	曹操
+	孫權
+	孫堅
+	孫策
+	周瑜
+	諸葛亮
+	徐庶
+	周泰
+	沙柯摩
+	姜維
+	龐統
+	司馬
+"""
 
 # each for a man
 class bandit(field):
@@ -21,37 +54,37 @@ class bandit(field):
 	#bit 2 (4) is done
 	FIELD_DESC = {
 		'fields': ('n-4', 'n-3', 'n-2', 'n-1'
-			, 'proies', 'experience'
-			, 'soldiar', 'life-assume', 'done'
-			, 'strength', 'wisdom', 'politic', 'charm'
-			, 'training', 'moral', 'title', 'royalty'
-			, 'state', 'country', 'n4', 'n5'
-			, 'n6', 'n7', 'n8', 'skill'),
+			, '勇名', '經驗'
+			, '兵數', '身份', '行動'
+			, '武力', '智力', '政治', '魅力'
+			, '訓練', '士氣', '將軍', '忠誠'
+			, '所在', '君主', 'n4', 'n5'
+			, 'n6', 'n7', 'n8', '技能'),
 		'n-4': 'B',
 		'n-3': 'B',
 		'n-2': 'B',
 		'n-1': 'B',
-		'proies': 'H',
-		'experience': 'H',
-		'soldiar': 'H',
-		'life-assume': 'B',
-		'done': 'B',
-		'strength': 'B',
-		'wisdom': 'B',
-		'politic': 'B',
-		'charm': 'B',
-		'training': 'B',
-		'moral': 'B',
-		'title': 'B',
-		'royalty': 'B',
-		'state': 'B',
-		'country': 'B',
+		'勇名': 'H',
+		'經驗': 'H',
+		'兵數': 'H',
+		'身份': 'B',
+		'行動': 'B',
+		'武力': 'B',
+		'智力': 'B',
+		'政治': 'B',
+		'魅力': 'B',
+		'訓練': 'B',
+		'士氣': 'B',
+		'將軍': 'B',
+		'忠誠': 'B',
+		'所在': 'B',
+		'君主': 'B',
 		'n4': 'B',
 		'n5': 'B',
 		'n6': 'B',
 		'n7': 'B',
 		'n8': 'B',
-		'skill': 'I'
+		'技能': 'I'
 	}
 
 	#opened file with cur pos for this man
@@ -63,12 +96,12 @@ class bandit(field):
 
 class misc(field):
 	FIELD_DESC = {
-		'fields': ('body', 'n1', 'n2', 'n3'
+		'fields': ('體力', 'n1', 'n2', 'n3'
 			, 'n4', 'n5', 'n6', 'n7'
 			, 'n8', 'n9', 'n10', 'n11'
 			, 'n12', 'n13', 'n14', 'n15'
 			, 'n16', 'n17'),
-		'body': 'B',
+		'體力': 'B',
 		'n1': 'B',
 		'n2': 'B',
 		'n3': 'B',
@@ -100,14 +133,17 @@ class san5Parser(object):
 	MAX_SOLDIAR = 20000
 	def __init__(self, fname, count=BANDIT_COUNT):
 		#if leader specified, remember country
-		self._fname = fname
+		for i in reversed(range(len(fname))):
+			if os.path.exists(fname[i]):
+				self._fname = fname[i]
+				break
 		self.BANDIT_COUNT = count
 		#data base
 		self._banditList = []        #list of object
 		self._banditByCountry = {}   #dict of object list by country
 		self._banditByState = {}     #dict of object list by state
 		self._stateList = []         #list of object
-		with open(fname, "rb") as f:
+		with open(self._fname, "rb") as f:
 			f.seek(self.OFFSET_BANDIT, 0)
 			for i in range(self.BANDIT_COUNT):
 				obj = bandit(f, i+1)
@@ -134,11 +170,11 @@ class san5Parser(object):
 	# Ret : obj - object inserted
 	#       None - fail to insert owning to invalid value
 	def _insertPerson(self, obj):
-		# determine by valid 'strength'
-		if not obj.attr('strength'):
+		# determine by valid '武力'
+		if not obj.attr('武力'):
 			return None
 		self._banditList.append(obj)
-		country, state = obj.attr('country'), obj.attr('state')
+		country, state = obj.attr('君主'), obj.attr('所在')
 		#create list if not present
 		if not country in self._banditByCountry:
 			self._banditByCountry[country] = []
@@ -149,8 +185,8 @@ class san5Parser(object):
 		self._banditByState[state].append(obj)
 		# check known characters
 		for name in g_bandit:
-			if g_bandit[name][0] == obj.attr('strength') and\
-			   g_bandit[name][1] == obj.attr('charm'):
+			if g_bandit[name][0] == obj.attr('武力') and\
+			   g_bandit[name][1] == obj.attr('魅力'):
 				obj.setName(name)
 		return obj
 
@@ -162,7 +198,7 @@ class san5Parser(object):
 			return
 		toState = 0
 		for man in self._banditByCountry[country]:
-			toState = man.attr('state')
+			toState = man.attr('所在')
 			break
 		if not toState:
 			print 'Fail to get the state of the first object'
@@ -173,8 +209,8 @@ class san5Parser(object):
 			if indexInList >= len(self._banditList):
 				print 'Invalid index '+bro+' ...skipped !!!'
 				continue
-			self._banditList[indexInList].set('country', country)
-			self._banditList[indexInList].set('state', toState)
+			self._banditList[indexInList].set('君主', country)
+			self._banditList[indexInList].set('所在', toState)
 		self.update()
 
 
@@ -199,18 +235,18 @@ class san5Parser(object):
 			print '*****'+name,
 		else:
 			print '******** no',
-		print obj.index(), ', country=', obj.attr('country'), ', state=', obj.attr('state'),
-		print ', body=', obj._misc.attr('body')
-		print obj.attr('strength'),
-		print obj.attr('wisdom'),
-		print obj.attr('politic'),
-		print obj.attr('charm'),
+		print obj.index(), ', 君主=', obj.attr('君主'), ', 所在=', obj.attr('所在'),
+		print ', 體力=', obj._misc.attr('體力')
+		print obj.attr('武力'),
+		print obj.attr('智力'),
+		print obj.attr('政治'),
+		print obj.attr('魅力'),
 		if level >= 1:
-			print 'skill=', format(obj.attr('skill'), '#010x')
-			print 'soldiar= ', obj.attr('soldiar'), ', training= ', obj.attr('training'), ', moral= ', obj.attr('moral'),
-			if 0x04 & obj.attr('done'): print 'done'
-			else: print 'yet'
-			print 'proies= ', obj.attr('proies'), ', experience= ', obj.attr('experience'), ', royalty= ', obj.attr('royalty')
+			print '技能=', format(obj.attr('技能'), '#010x')
+			print '兵數= ', obj.attr('兵數'), ', 訓練= ', obj.attr('訓練'), ', 士氣= ', obj.attr('士氣'),
+			if 0x04 & obj.attr('行動'): print '完成'
+			else: print '未完'
+			print '勇名= ', obj.attr('勇名'), ', 經驗= ', obj.attr('經驗'), ', 忠誠= ', obj.attr('忠誠')
 		else:
 			print
 
@@ -253,42 +289,42 @@ class san5Parser(object):
 				print 'Invalid index '+man+' ...skipped !!!'
 				continue
 			obj = self._banditList[indexInList]
-			#print "manutest", obj.index(), obj.attr('royalty')
+			#print "manutest", obj.index(), obj.attr('忠誠')
 			#skip man in the field
-			if obj.attr('royalty') < 60:
+			if obj.attr('忠誠') < 60:
 				continue
-			if obj.attr('wisdom') >= 90 and obj.attr('politic') >= 80:
-				obj.set('soldiar', self.MAX_SOLDIAR)
-			elif obj.attr('strength') >= 90:
-				obj.set('soldiar', self.MAX_SOLDIAR)
-			elif obj.attr('strength')+obj.attr('wisdom') >= 160:
-				obj.set('soldiar', self.MAX_SOLDIAR)
-			elif obj.attr('strength') >= 80:
-				obj.set('soldiar', 8000)
-			elif obj.attr('strength')+obj.attr('wisdom') >= 150:
-				obj.set('soldiar', 8000)
+			if obj.attr('智力') >= 90 and obj.attr('政治') >= 80:
+				obj.set('兵數', self.MAX_SOLDIAR)
+			elif obj.attr('武力') >= 90:
+				obj.set('兵數', self.MAX_SOLDIAR)
+			elif obj.attr('武力')+obj.attr('智力') >= 160:
+				obj.set('兵數', self.MAX_SOLDIAR)
+			elif obj.attr('武力') >= 80:
+				obj.set('兵數', 8000)
+			elif obj.attr('武力')+obj.attr('智力') >= 150:
+				obj.set('兵數', 8000)
 			else:
-				obj.set('soldiar', 0)
-			#set training only if soldiar
-			if obj.attr('soldiar'):
-				if obj.attr('soldiar') == self.MAX_SOLDIAR:
-					obj.set('skill', 0xffffffff)
-				obj.set('training', 100)
-				obj.set('moral', 100)
+				obj.set('兵數', 0)
+			#set 訓練 only if soldiar
+			if obj.attr('兵數'):
+				if obj.attr('兵數') == self.MAX_SOLDIAR:
+					obj.set('技能', 0xffffffff)
+				obj.set('訓練', 100)
+				obj.set('士氣', 100)
 			else:
-				obj.set('training', 0)
-				obj.set('moral', 0)
-			obj._misc.set('body', 100)
-			obj.set('done', 0)
-			obj.set('royalty', 100)
+				obj.set('訓練', 0)
+				obj.set('士氣', 0)
+			obj._misc.set('體力', 100)
+			obj.set('行動', 0)
+			obj.set('忠誠', 100)
 
 
 # Parse argument and make sure there is action to be taken
 # Ret : arg - parsed result
 def chk_param():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-f', action='store', dest='file', default=g_savefile,
-		help='save file, default is '+g_savefile)
+	parser.add_argument('-f', action='append', dest='file', default=g_savefile,
+		help='save file')
 	parser.add_argument('-l', action='store', dest='leader', default=0,
 		help='specify leader by 1-based index')
 	parser.add_argument('-b', action='append', dest='brother', default=[],
