@@ -58,40 +58,40 @@ g_bandit = {
 class state(field):
 	STATE_SIZE= 30
 	FIELD_DESC = {
-		'fields': ('wall-def', 'n1', 'develop', 'commercial'
-			, 'n2', 'n3', 'n4', 'water', 'loyalty'
-			, 'n5', 'n6', 'n7', 'n8'
-			, 'n9', 'n10', 'n11', 'n12'
-			, 'n13', 'n14', 'n15', 'n16'
-			, 'n17', 'n18', 'n19', 'n20'
-			, 'n21'
+		'fields': (
+			'preSoldiar', 'n-12', 'n-11', 'n-10'
+			, 'n-9', 'n-8', 'n-7', 'n-6'
+			, 'n-5', 'n-4', 'n-3', 'n-2'
+			, 'n-1'
+			, 'wall-def', 'n1', 'develop', 'commercial'
+			, 'n2', 'n3', 'country', 'water', 'loyalty'
+			, 'preMoral', 'preTraining', 'n7'
 		),
+		'preSoldiar': 'H',
+		'n-12': 'B',
+		'n-11': 'B',
+		'n-10': 'B',
+		'n-9': 'B',
+		'n-8': 'B',
+		'n-7': 'B',
+		'n-6': 'B',
+		'n-5': 'B',
+		'n-4': 'B',
+		'n-3': 'B',
+		'n-2': 'B',
+		'n-1': 'B',
 		'wall-def': 'H',
 		'n1': 'H',
 		'develop' : 'H',
 		'commercial': 'H',
 		'n2': 'B',
 		'n3': 'B',
-		'n4': 'B',
+		'country': 'B',
 		'water': 'B',
 		'loyalty': 'B',
-		'n5': 'B',
-		'n6': 'B',
-		'n7': 'B',
-		'n8': 'B',
-		'n9': 'B',
-		'n10': 'B',
-		'n11': 'B',
-		'n12': 'B',
-		'n13': 'B',
-		'n14': 'B',
-		'n15': 'B',
-		'n16': 'B',
-		'n17': 'B',
-		'n18': 'B',
-		'n19': 'B',
-		'n20': 'B',
-		'n21': 'B'
+		'preMoral': 'B',
+		'preTraining': 'B',
+		'n7': 'B'
 	}
 
 	def __init__(self, f, index, name=''):
@@ -100,6 +100,7 @@ class state(field):
 
 	def show(self):
 		print 'state', self.index(),
+		print 'country', self.attr('country'),
 		print 'wall', self.attr('wall-def'),
 		print 'develop', self.attr('develop'),
 		print 'commercial', self.attr('commercial'),
@@ -186,7 +187,7 @@ class misc(field):
 
 # take care of file
 class san5Parser(object):
-	OFFSET_STATE = 0x403
+	OFFSET_STATE = 0x3f5
 	STATE_COUNT = 47
 	OFFSET_BANDIT = 0x1abe
 	OFFSET_MISC = 0x8690
@@ -202,9 +203,19 @@ class san5Parser(object):
 		#data base
 		self._banditList = []        #list of object
 		self._banditByCountry = {}   #dict of object list by country
+		self._stateByCountry = {}    #dict of state list by country
 		self._banditByState = {}     #dict of object list by state
 		self._stateList = []         #list of object
 		with open(self._fname, "rb") as f:
+			#read state data
+			f.seek(self.OFFSET_STATE, 0)
+			for i in range(self.STATE_COUNT):
+				obj = state(f, i+1)
+				self._stateList.append(obj)
+				country = obj.attr('country')
+				if not country in self._stateByCountry:
+					self._stateByCountry[country] = []
+				self._stateByCountry[country].append(obj)
 			#read people data
 			f.seek(self.OFFSET_BANDIT, 0)
 			for i in range(self.BANDIT_COUNT):
@@ -217,11 +228,6 @@ class san5Parser(object):
 			for i in range(self.BANDIT_COUNT):
 				obj = misc(f, i+1)
 				self._banditList[i]._misc = obj
-			#read state data
-			f.seek(self.OFFSET_STATE, 0)
-			for i in range(self.STATE_COUNT):
-				obj = state(f, i+1)
-				self._stateList.append(obj)
 
 
 	def update(self):
@@ -246,7 +252,7 @@ class san5Parser(object):
 			return None
 		self._banditList.append(obj)
 		country, state = obj.attr('君主'), obj.attr('所在')
-		#create list if not present
+		#create people list by country if not present
 		if not country in self._banditByCountry:
 			self._banditByCountry[country] = []
 		self._banditByCountry[country].append(obj)
@@ -340,9 +346,19 @@ class san5Parser(object):
 			for obj in  self._banditByCountry[country]:
 				theList.append(obj.index())
 			self._refillPerson(theList)
-			#todo save
-			self.update()
 			#self.showCountry(country, 1)
+		for state in self._stateByCountry[country]:
+			state.set('preSoldiar', 0)
+			state.set('preMoral', 0)
+			state.set('preTraining', 0)
+			state.set('develop', 999)
+			state.set('wall-def', 999)
+			state.set('commercial', 999)
+			state.set('water', 100)
+			state.set('loyalty', 100)
+		#todo save
+		self.update()
+
 
 	# stateList is list in state in string
 	def showState(self, stateList, level=0):
