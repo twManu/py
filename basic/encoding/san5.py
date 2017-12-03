@@ -54,6 +54,59 @@ g_bandit = {
 	"龐統": (56, 85)
 }
 
+
+class state(field):
+	STATE_SIZE= 30
+	FIELD_DESC = {
+		'fields': ('wall-def', 'n1', 'develop', 'commercial'
+			, 'n2', 'n3', 'n4', 'water', 'loyalty'
+			, 'n5', 'n6', 'n7', 'n8'
+			, 'n9', 'n10', 'n11', 'n12'
+			, 'n13', 'n14', 'n15', 'n16'
+			, 'n17', 'n18', 'n19', 'n20'
+			, 'n21'
+		),
+		'wall-def': 'H',
+		'n1': 'H',
+		'develop' : 'H',
+		'commercial': 'H',
+		'n2': 'B',
+		'n3': 'B',
+		'n4': 'B',
+		'water': 'B',
+		'loyalty': 'B',
+		'n5': 'B',
+		'n6': 'B',
+		'n7': 'B',
+		'n8': 'B',
+		'n9': 'B',
+		'n10': 'B',
+		'n11': 'B',
+		'n12': 'B',
+		'n13': 'B',
+		'n14': 'B',
+		'n15': 'B',
+		'n16': 'B',
+		'n17': 'B',
+		'n18': 'B',
+		'n19': 'B',
+		'n20': 'B',
+		'n21': 'B'
+	}
+
+	def __init__(self, f, index, name=''):
+		super(state, self).__init__(f, self.FIELD_DESC, index, name)
+
+
+	def show(self):
+		print 'state', self.index(),
+		print 'wall', self.attr('wall-def'),
+		print 'develop', self.attr('develop'),
+		print 'commercial', self.attr('commercial'),
+		print 'water', self.attr('water'),
+		print 'loyalty', self.attr('loyalty')
+
+
 # each for a man
 class bandit(field):
 	BANDIT_SIZE = 31
@@ -133,6 +186,8 @@ class misc(field):
 
 # take care of file
 class san5Parser(object):
+	OFFSET_STATE = 0x403
+	STATE_COUNT = 47
 	OFFSET_BANDIT = 0x1abe
 	OFFSET_MISC = 0x8690
 	BANDIT_COUNT = 300
@@ -150,16 +205,23 @@ class san5Parser(object):
 		self._banditByState = {}     #dict of object list by state
 		self._stateList = []         #list of object
 		with open(self._fname, "rb") as f:
+			#read people data
 			f.seek(self.OFFSET_BANDIT, 0)
 			for i in range(self.BANDIT_COUNT):
 				obj = bandit(f, i+1)
 				if not self._insertPerson(obj):
 					self.BANDIT_COUNT = i
 					break
+			#read people associated data
 			f.seek(self.OFFSET_MISC, 0)
 			for i in range(self.BANDIT_COUNT):
 				obj = misc(f, i+1)
 				self._banditList[i]._misc = obj
+			#read state data
+			f.seek(self.OFFSET_STATE, 0)
+			for i in range(self.STATE_COUNT):
+				obj = state(f, i+1)
+				self._stateList.append(obj)
 
 
 	def update(self):
@@ -170,6 +232,9 @@ class san5Parser(object):
 			f.seek(self.OFFSET_MISC, 0)
 			for hh in self._banditList:
 				hh._misc.write(f)
+			f.seek(self.OFFSET_STATE, 0)
+			for hh in self._stateList:
+				hh.write(f)
 
 
 	# insert into database
@@ -231,6 +296,8 @@ class san5Parser(object):
 				print 'Invalid index '+man+' ...skipped !!!'
 				continue
 			self._showPerson(self._banditList[indexInList], level)
+		for state in self._stateList:
+			state.show()
 
 
 	# show info by level
