@@ -56,6 +56,7 @@ g_bandit = {
 
 #0 based tuple
 g_state = (
+	'dummy',
 	'襄平',
 	'北平',
 	'代縣',
@@ -130,7 +131,7 @@ class state(field):
 		'n-3': 'B',
 		'人口': 'H',
 		'城防': 'H',
-		'災害': 'B'
+		'災害': 'B',
 		'n1': 'B',
 		'開發' : 'H',
 		'商業': 'H',
@@ -144,12 +145,15 @@ class state(field):
 		'n7': 'B'
 	}
 
-	def __init__(self, f, index, name=''):
-		super(state, self).__init__(f, self.FIELD_DESC, index, name)
+	def __init__(self, f, index):
+		if index >= len(g_state):
+			print 'state out of range !!!'
+			return
+		super(state, self).__init__(f, self.FIELD_DESC, index, g_state[index])
 
 
 	def show(self):
-		print '州', self.index(),
+		print self.name(),
 		print '君主', self.attr('君主'),
 		print '城防', self.attr('城防'),
 		print '開發', self.attr('開發'),
@@ -259,7 +263,7 @@ class san5Parser(object):
 			for i in range(self.STATE_COUNT):
 				obj = state(f, i+1)
 				self._stateList.append(obj)
-				country = obj.attr('country')
+				country = obj.attr('君主')
 				if not country in self._stateByCountry:
 					self._stateByCountry[country] = []
 				self._stateByCountry[country].append(obj)
@@ -357,11 +361,16 @@ class san5Parser(object):
 	# level 0 with minimal info
 	def _showPerson(self, obj, level=0):
 		name = obj.name()
+		state = obj.attr('所在')
 		if name:
 			print '*****'+name,
 		else:
 			print '******** no',
-		print obj.index(), ', 君主=', obj.attr('君主'), ', 所在=', obj.attr('所在'),
+
+		print obj.index(), ', 君主=', obj.attr('君主'), ', 所在=', state,
+		#list is 0 based while index is 1 based
+		if state >= len(g_state): print 'unknown'
+		else: print '('+self._stateList[state-1].name()+')'
 		print ', 體力=', obj._misc.attr('體力')
 		print obj.attr('武力'),
 		print obj.attr('智力'),
@@ -397,13 +406,14 @@ class san5Parser(object):
 			#self.showCountry(country, 1)
 		for state in self._stateByCountry[country]:
 			state.set('預備兵', 0)
-			state.set('preMoral', 0)
-			state.set('preTraining', 0)
-			state.set('develop', 999)
-			state.set('wall-def', 999)
-			state.set('commercial', 999)
-			state.set('water', 100)
-			state.set('loyalty', 100)
+			state.set('士氣', 0)
+			state.set('訓練', 0)
+			state.set('開發', 999)
+			state.set('城防', 999)
+			state.set('商業', 999)
+			state.set('治水', 100)
+			state.set('民忠', 100)
+			print '君主', self.attr('君主'),
 		#todo save
 		self.update()
 
