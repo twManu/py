@@ -111,7 +111,7 @@ class state(field):
 	STATE_SIZE= 30
 	FIELD_DESC = {
 		'fields': (
-			'預備兵', 'n-12', 'n-11', 'n-10'
+			'預備兵', 'n-10'
 			, 'n-9', 'n-8', 'n-7', 'n-6'
 			, 'n-5', 'n-4', 'n-3', '人口'
 			, '城防', '災害', 'n1', '開發', '商業'
@@ -119,8 +119,6 @@ class state(field):
 			, '士氣', '訓練', 'n7'
 		),
 		'預備兵': 'I',
-		'n-12': 'B',
-		'n-11': 'B',
 		'n-10': 'B',
 		'n-9': 'B',
 		'n-8': 'B',
@@ -147,9 +145,9 @@ class state(field):
 
 	def __init__(self, f, index):
 		if index >= len(g_state):
-			print 'state out of range !!!'
-			return
-		super(state, self).__init__(f, self.FIELD_DESC, index, g_state[index])
+			super(state, self).__init__(f, self.FIELD_DESC, index, 'unknown')
+		else:	
+			super(state, self).__init__(f, self.FIELD_DESC, index, g_state[index])
 
 
 	def show(self):
@@ -267,6 +265,7 @@ class san5Parser(object):
 				if not country in self._stateByCountry:
 					self._stateByCountry[country] = []
 				self._stateByCountry[country].append(obj)
+				#print 'added', country, 'w/'+obj.name()
 			#read people data
 			f.seek(self.OFFSET_BANDIT, 0)
 			for i in range(self.BANDIT_COUNT):
@@ -413,7 +412,6 @@ class san5Parser(object):
 			state.set('商業', 999)
 			state.set('治水', 100)
 			state.set('民忠', 100)
-			print '君主', self.attr('君主'),
 		#todo save
 		self.update()
 
