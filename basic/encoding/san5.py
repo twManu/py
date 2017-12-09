@@ -54,20 +54,70 @@ g_bandit = {
 	"龐統": (56, 85)
 }
 
+#0 based tuple
+g_state = (
+	'襄平',
+	'北平',
+	'代縣',
+	'晉陽',
+	'南皮',
+	'平原',
+	'鄴',
+	'北海',
+	'濮陽',
+	'陳留',
+	'洛陽',
+	'弘農',
+	'長安',
+	'安定',
+	'天水',
+	'西涼',
+	'下邳',
+	'徐州',
+	'許昌',
+	'譙',
+	'汝南',
+	'宛',
+	'新野',
+	'襄陽',
+	'上庸',
+	'江夏',
+	'江陵',
+	'武陵',
+	'長沙',
+	'桂陽',
+	'零陵',
+	'夀春',
+	'建業',
+	'吳',
+	'會稽',
+	'盧江',
+	'豫章',
+	'漢中',
+	'下弁',
+	'梓潼',
+	'成都',
+	'永安',
+	'江州',
+	'建寧',
+	'雲南',
+	'盧陵',
+	'鄱陽'
+)
+
 
 class state(field):
 	STATE_SIZE= 30
 	FIELD_DESC = {
 		'fields': (
-			'preSoldiar', 'n-12', 'n-11', 'n-10'
+			'預備兵', 'n-12', 'n-11', 'n-10'
 			, 'n-9', 'n-8', 'n-7', 'n-6'
-			, 'n-5', 'n-4', 'n-3', 'n-2'
-			, 'n-1'
-			, 'wall-def', 'n1', 'develop', 'commercial'
-			, 'n2', 'n3', 'country', 'water', 'loyalty'
-			, 'preMoral', 'preTraining', 'n7'
+			, 'n-5', 'n-4', 'n-3', '人口'
+			, '城防', '災害', 'n1', '開發', '商業'
+			, 'n2', 'n3', '君主', '治水', '民忠'
+			, '士氣', '訓練', 'n7'
 		),
-		'preSoldiar': 'H',
+		'預備兵': 'I',
 		'n-12': 'B',
 		'n-11': 'B',
 		'n-10': 'B',
@@ -78,19 +128,19 @@ class state(field):
 		'n-5': 'B',
 		'n-4': 'B',
 		'n-3': 'B',
-		'n-2': 'B',
-		'n-1': 'B',
-		'wall-def': 'H',
-		'n1': 'H',
-		'develop' : 'H',
-		'commercial': 'H',
+		'人口': 'H',
+		'城防': 'H',
+		'災害': 'B'
+		'n1': 'B',
+		'開發' : 'H',
+		'商業': 'H',
 		'n2': 'B',
 		'n3': 'B',
-		'country': 'B',
-		'water': 'B',
-		'loyalty': 'B',
-		'preMoral': 'B',
-		'preTraining': 'B',
+		'君主': 'B',
+		'治水': 'B',
+		'民忠': 'B',
+		'士氣': 'B',
+		'訓練': 'B',
 		'n7': 'B'
 	}
 
@@ -99,13 +149,13 @@ class state(field):
 
 
 	def show(self):
-		print 'state', self.index(),
-		print 'country', self.attr('country'),
-		print 'wall', self.attr('wall-def'),
-		print 'develop', self.attr('develop'),
-		print 'commercial', self.attr('commercial'),
-		print 'water', self.attr('water'),
-		print 'loyalty', self.attr('loyalty')
+		print '州', self.index(),
+		print '君主', self.attr('君主'),
+		print '城防', self.attr('城防'),
+		print '開發', self.attr('開發'),
+		print '商業', self.attr('商業'),
+		print '治水', self.attr('治水'),
+		print '民忠', self.attr('民忠')
 
 
 # each for a man
@@ -118,8 +168,8 @@ class bandit(field):
 			, '兵數', '身份', '行動'
 			, '武力', '智力', '政治', '魅力'
 			, '訓練', '士氣', '將軍', '忠誠'
-			, '所在', '君主', 'n4', 'n5'
-			, 'n6', 'n7', 'n8', '技能'),
+			, '所在', '君主', '性格', '寶物'
+			, '技能'),
 		'n-4': 'B',
 		'n-3': 'B',
 		'n-2': 'B',
@@ -139,11 +189,8 @@ class bandit(field):
 		'忠誠': 'B',
 		'所在': 'B',
 		'君主': 'B',
-		'n4': 'B',
-		'n5': 'B',
-		'n6': 'B',
-		'n7': 'B',
-		'n8': 'B',
+		'性格': 'B',
+		'寶物': 'I',
 		'技能': 'I'
 	}
 
@@ -322,10 +369,11 @@ class san5Parser(object):
 		print obj.attr('魅力'),
 		if level >= 1:
 			print '技能=', format(obj.attr('技能'), '#010x')
+			print '寶物=', format(obj.attr('寶物'), '#010x')
 			print '兵數= ', obj.attr('兵數'), ', 訓練= ', obj.attr('訓練'), ', 士氣= ', obj.attr('士氣'),
 			if 0x04 & obj.attr('行動'): print '完成'
 			else: print '未完'
-			print '勇名= ', obj.attr('勇名'), ', 經驗= ', obj.attr('經驗'), ', 忠誠= ', obj.attr('忠誠')
+			print '勇名= ', obj.attr('勇名'), ', 經驗= ', obj.attr('經驗'), ', 忠誠= ', obj.attr('忠誠'), ', 性格= ', obj.attr('性格')
 		else:
 			print
 
@@ -348,7 +396,7 @@ class san5Parser(object):
 			self._refillPerson(theList)
 			#self.showCountry(country, 1)
 		for state in self._stateByCountry[country]:
-			state.set('preSoldiar', 0)
+			state.set('預備兵', 0)
 			state.set('preMoral', 0)
 			state.set('preTraining', 0)
 			state.set('develop', 999)
