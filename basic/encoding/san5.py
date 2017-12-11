@@ -313,7 +313,7 @@ class san5Parser(object):
 		self._banditByState[state].append(obj)
 		# check known characters
 		for name in g_bandit:
-			if g_bandit[name][0] == obj.attr('武力') and\
+			if g_bandit[name][2] == obj.attr('政治') and\
 			   g_bandit[name][1] == obj.attr('魅力'):
 				obj.setName(name)
 		return obj
@@ -369,8 +369,8 @@ class san5Parser(object):
 
 		print obj.index(), ', 君主=', obj.attr('君主'), ', 所在=', state,
 		#list is 0 based while index is 1 based
-		if state >= len(g_state): print 'unknown'
-		else: print '('+self._stateList[state-1].name()+')'
+		if state >= len(g_state): print 'unknown',
+		else: print '('+self._stateList[state-1].name()+')',
 		print ', 體力=', obj._misc.attr('體力')
 		print obj.attr('武力'),
 		print obj.attr('智力'),
