@@ -32,15 +32,16 @@ class cStruct():
 	# given a line in field statement
 	# analysize it as var part and type part
 	# say 'unsigned int a[32];' -> a[32] and unsigned int
-	# Ret : indicator in type,
-	#        I - int
-	#        H - short
-	#        B - char
-	#        s - string
+	# Ret : (formatString, fieldName)
+	#        I - int, fieldName
+	#        H - short, fieldName
+	#        B - char, fieldName
+	#        s - string, fieldName
+	#        fail - '', not defined
 	def _getType(self, line):
-		indicator = ''
+		formatString = ''
 		name = ''
-		typeInPack = (
+		formatCharByType = (
 			  ('I', ('enum', 'int', 'u32', 's32'))
 			, ('B', ('char', 'u8', 's8'))
 			, ('H', ('short', 'u16', 's16'))
@@ -64,19 +65,17 @@ class cStruct():
 					anArray = 0
 				name = var
 				#print var+'in type '+varType
-				for item in typeInPack:
-					for tt in item[1]:
+				for fcItem in formatCharByType:
+					for tt in fcItem[1]:
 						if re.search(tt, type, re.I):
-							indicator = item[0]
+							formatString = fcItem[0]
 							if anArray:
-								if indicator == 'B':
+								if formatString == 'B':
 									#turn into string
-									indicator = 's'
-								indicator = str(anArray)+indicator
-							break        #break for tt
-					if indicator:      
-						break                #break for item
-		return indicator, name
+									formatString = 's'
+								formatString = str(anArray)+formatString
+							return formatString, name
+		return formatString, name
 
 
 	# do parsing
