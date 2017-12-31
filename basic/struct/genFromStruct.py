@@ -129,6 +129,7 @@ class cStruct():
 					print '\t, \''+word0+'\''+': '+word0
 				else:
 					print '\t  \''+word0+'\''+': '+word0
+				self._index += 1
 				return True
 			self._defEnd()
 		return False
