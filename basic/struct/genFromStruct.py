@@ -2,14 +2,19 @@
 import os, sys, argparse, re
 
 class cStruct():
-	def __init__(self, path):
+	def __init__(self, path, verbose=0):
+		self._inStruct = False
+		self._inDefine = False
+		self._index = 0                  #both struct and define use it
+		self._varName = ''               #var of struct and also define prefix
+		self._formatString = ''          #format string of struct
+		self._verbose = verbose
 		if not os.path.exists(path):
 			print 'Missing '+path
 			return
 		try:
 			with open(path, 'r') as ff:
 				self._parse(ff)
-				#self._parse(ff, True)
 		except:
 			print "fail to open "+path
 
@@ -39,7 +44,7 @@ class cStruct():
 	#        s - string, fieldName
 	#        fail - '', not defined
 	def _getType(self, line):
-		formatString = ''
+		formatChar = ''
 		name = ''
 		formatCharByType = (
 			  ('I', ('enum', 'int', 'u32', 's32'))
@@ -68,72 +73,175 @@ class cStruct():
 				for fcItem in formatCharByType:
 					for tt in fcItem[1]:
 						if re.search(tt, type, re.I):
-							formatString = fcItem[0]
+							formatChar = fcItem[0]
 							if anArray:
-								if formatString == 'B':
+								if formatChar == 'B':
 									#turn into string
-									formatString = 's'
-								formatString = str(anArray)+formatString
-							return formatString, name
-		return formatString, name
+									formatChar = 's'
+								formatChar = str(anArray)+formatChar
+							return formatChar, name
+			else:
+				print line+' fails to be parsed as a variable'
+		else:
+			print line+' is empty and skipped'
+		return formatChar, name
 
 
-	# do parsing
-	def _parse(self, fd, verbose=False):
-		inStruct = False
-		pattern = ''
-		index = 0
-		varName = ''
-		for line in fd:
+	# Check if a line starts with '#define'
+	# In : line - stripped and comments none
+	# Ret : '' - if not a start
+	#       otherwise - the name global variable
+	def _defStart(self, line):
+		symbol = ''
+		if not self._inDefine and re.match(r'#define', line, re.I):
+			if self._verbose>=1:
+				print 'defStart with '+line
+			got, lastWord, resetLine = self._lastWord(line)
+			if got:
+				symbol = 'g_'+lastWord
+				print symbol+' = {'
+				self._structEnd('};')
+				self._varName = lastWord
+				self._inDefine = True
+				self._index = 0
+			else:
+				print 'fail to parse define start '+line
+		return symbol
+
+
+	# Check if in define body whi
+	# In : line - stripped and comments none
+	# Ret: True - '=' found and is a define body
+	#      NOTE: empty is True to in order to be ignored
+	#      False - otherwise
+	def _defBody(self, line):
+		if self._inDefine:
+			# case in define
 			line = line.strip()
-			if verbose:
-				print line
+			if not line:             #skip empty
+				return True
+			# it must be 'a = b'
+			if re.match(self._varName, line, re.I) and re.search('=', line):
+				if self._verbose>=1:
+					print 'defBody with '+line
+				word0 = line.split('=')[0].strip()
+				if self._index:
+					print '\t, \''+word0+'\''+': '+word0
+				else:
+					print '\t  \''+word0+'\''+': '+word0
+				return True
+			self._defEnd()
+		return False
+
+
+	# Ends a definition
+	def _defEnd(self):
+		if self._inDefine:
+			if self._verbose>=1:
+				print 'defEnd'
+			self._inDefine = False
+			print '}'
+			print
+
+
+	# Check if a line contains 'struct '
+	# In : line - stripped and comments none
+	# Ret : True - if variable is parsed
+	#       False - not a struct
+	def _structStart(self, line):
+		if not self._inStruct and re.search('struct ', line):
+			got, lastWord, resetLine = self._lastWord(line)
+			if got:
+				if self._verbose>=1:
+					print 'structStart with '+line
+				if lastWord == '{':
+					#drop trailing '{'
+					got, lastWord, resetLine = self._lastWord(resetLine)
+				self._defEnd()
+				self._varName = lastWord
+				self._inStruct = True
+				self._index = 0
+				self._formatString = ''
+				return True
+		return False
+
+
+	# Check if ends a struct
+	# In : line - stripped and comments none
+	# Ret: True - yes
+	#      otherwise - not
+	# todo }; must be together
+	def _structEnd(self, line):
+		if self._inStruct and re.match(r"};$", line):
+			if self._verbose>=1:
+				print 'structEnd with '+line
+			self._inStruct = False
+			print self._varName+'_formatString =\''+self._formatString+'\''
+			print
+			return True
+		return False
+
+
+	# Check if a line 'type var'
+	# In : line - stripped and comments none
+	# Ret : True - if variable is parsed
+	#       False - not a struct
+	def _structBody(self, line):
+		if self._inStruct:
+			if self._verbose>=1:
+				print 'structBody with '+line
+			ii, nn = self._getType(line)
+			if ii:
+				self._formatString += ii
+				print self._varName+str(self._index)+'_'+nn+' =', self._index
+				self._index += 1
+				return True
+		return False
+
+
+	# do parsing of
+	# 1. struct
+	# 2. #define XXX
+	#
+	def _parse(self, fd):
+		for line in fd:
+			if self._verbose>=2:
+				print 'echo '+line
+			line = line.strip()
+			if not line:
+				continue
 			#remove comment in a line
 			line = re.sub(r"//.*", '', line)
 			line = re.sub(r"/\*[^\*]*\*/", '', line)
-			if not line: continue
-			# case in structure or not
-			if inStruct:
-				match = re.match(r"};$", line)
-				if match:
-					#out of struct
-					inStruct = False
-					if verbose:
-						print 'out struct with '+line
-					print pattern
-					pattern = ''
-					index = 0
-				else:
-					ii, nn = self._getType(line)
-					if ii:
-						pattern += ii
-						print varName+str(index)+'_'+nn+' =', index
-						index += 1
+			line = line.strip()
+			if not line:
+				continue
+			elif self._defStart(line):
+				continue
+			elif self._defBody(line):
+				continue
 			else:
-				#start of a struct
-				#      struct name {
-				# todo multi-line
-				inStruct = re.search('struct ', line)
-				if not inStruct:
+				self._defEnd()
+				if self._structStart(line):
 					continue
-				got, lastWord, resetLine = self._lastWord(line)
-				if got:
-					if lastWord == '{':
-						got, lastWord, resetLine = self._lastWord(resetLine)
-					varName = lastWord
-					if verbose:
-						print 'in struct with '+line
+				elif self._structEnd(line):
+					continue
 				else:
-					inStruct = False
-		if pattern:
-			print pattern
+					self._structBody(line)
+		self._defEnd()
+		self._structEnd('};')
+
 
 #
 # main
 #
-if len(sys.argv) < 2:
-	print 'Please provide file name'
-	sys.exit(-1)
-
-obj = cStruct(sys.argv[1])
+if __name__ == '__main__':
+	if len(sys.argv) < 2:
+		print 'Please provide file name'
+		sys.exit(-1)
+	elif len(sys.argv) == 2:
+		level = 0
+	else:
+		level = int(sys.argv[2])
+	obj = cStruct(sys.argv[1], level)
 	
