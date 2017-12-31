@@ -4,7 +4,7 @@
 # 	sys.path.append(../basic)
 import subprocess, os, sys, re, argparse
 
-class manuLib(object):
+class manuLib():
 	OS_WINDOWS="WINDOWS"
 	OS_MAC="MAC"
 	OS_LINUX="LINUX"
