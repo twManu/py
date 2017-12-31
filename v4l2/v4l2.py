@@ -11,6 +11,7 @@ class video:
                 self._path='/dev/'+node
                 self._cap = None
 		self._dictFmt = {}          #dict of emulated format list for each type
+		self._dictFrmSz = {}        #dict of emulated format list for each pix format
                 #exist?
                 if not os.path.exists(self._path):
                         print 'Missing '+self._path
@@ -32,6 +33,15 @@ class video:
 			if vv == value:
 				return kk
 		return 'unknown format'
+
+
+	# Show format name
+	# In  : capType - 0 means not to show title and type
+	#               - otherwise show title in advance
+	def _showFmt(self, fmt, capType):
+		if capType>=0:
+			print "Format of "+self._nameOfDictByValue(g_V4L2_BUF_TYPE, capType)+':'
+		print '\t'+self._nameOfDictByValue(g_V4L2_PIX_FMT, fmt[v4l2_fmtdesc4_pixelformat])
 
 
         # In  : enumType - type of format to enumerate, see g_V4L2_BUF_TYPE
@@ -57,10 +67,13 @@ class video:
                                 	ret = struct.unpack(v4l2_fmtdesc_formatString\
 						, fcntl.ioctl(self._fd, VIDIOC_ENUM_FMT, efmt))
 					#print 'got enum fmt '+ret[v4l2_fmtdesc3_description]
-					if not index:
-						print "Format of "+self._nameOfDictByValue(g_V4L2_BUF_TYPE, capType)+' :'
-					print '\t'+self._nameOfDictByValue(g_V4L2_PIX_FMT, ret[v4l2_fmtdesc4_pixelformat])
+					if show:
+						if not index:
+							self._showFmt(ret, capType)
+						else:
+							self._showFmt(ret, -1)
 					self._dictFmt[capType].append(ret[v4l2_fmtdesc4_pixelformat])
+					self.enumFrameSz(ret[v4l2_fmtdesc4_pixelformat])
 					index += 1
 				except:
 					if not index:
@@ -68,6 +81,78 @@ class video:
                                 	break
                 return self._dictFmt[capType]
 
+
+	# frmSz is packed
+	def _showFrmSz(self, frmSz):
+		print '\t\t'+self._nameOfDictByValue(g_V4L2_FRMIVAL, frmSz[v4l2_frmsizeenum2_type])+' : (',
+		if frmSz[v4l2_frmsizeenum2_type] == V4L2_FRMIVAL_TYPE_DISCRETE:
+			#width x height
+			print frmSz[v4l2_frmsizeenum3_min_width],
+			print 'x',
+			print frmSz[v4l2_frmsizeenum4_max_width],
+			print ')'
+		elif frmSz[v4l2_frmsizeenum2_type] == V4L2_FRMIVAL_TYPE_CONTINUOUS:
+			print frmSz[v4l2_frmsizeenum3_min_width],
+			print 'x',
+			print frmSzret[v4l2_frmsizeenum4_max_width],
+			print ') ... (',
+			print frmSz[v4l2_frmsizeenum3_min_height],
+			print 'x',
+			print frmSz[v4l2_frmsizeenum4_max_height],
+			print ')'
+		elif frmSz[v4l2_frmsizeenum2_type] == V4L2_FRMIVAL_TYPE_STEPWISE:
+			print frmSz[v4l2_frmsizeenum3_min_width],
+			print 'x'
+			print frmSz[v4l2_frmsizeenum4_max_width],
+			print '+ ',
+			print frmSz[v4l2_frmsizeenum5_step_width],
+			print ') ... (',
+			print frmSz[v4l2_frmsizeenum3_min_height],
+			print 'x',
+			print frmSz[v4l2_frmsizeenum4_max_height],
+			print '+',
+			print frmSz[v4l2_frmsizeenum8_step_height],
+			print ')'
+		else:
+			print 'invalid type'
+
+
+	# check frame size supported by given format
+	# pformat - pix format
+	#
+	def enumFrameSz(self, pformat):
+		if not self._fd:
+                        return None
+		if not pformat in self._dictFrmSz:
+			self._dictFrmSz[pformat] = []
+			#print 'creating', pformat
+			index = 0
+			while True:
+				'''
+				efrmsz = struct.pack(v4l2_frmsizeenum_formatString0, index, pformat, 0, 0, 0)
+                        	try:
+                               		ret = fcntl.ioctl(self._fd, VIDIOC_ENUM_FRAMESIZES, efrmsz)
+				except:
+					if not index:
+						print 'fail to enum frame size'
+                               		break
+				efrmsz = struct.unpack(v4l2_frmsizeenum_formatString0, ret)
+				if ret[v4l2_frmsizeenum2_type] != V4L2_FRMIVAL_TYPE_DISCRETE:
+				'''
+				if True:
+					efrmsz = struct.pack(v4l2_frmsizeenum_formatString, index, pformat, 0, 0, 0\
+							, 0, 0, 0, 0, 0, 0)
+	                        	try:
+	                               		ret = fcntl.ioctl(self._fd, VIDIOC_ENUM_FRAMESIZES, efrmsz)
+					except:
+						if not index:
+							print 'fail to enum frame size 2'
+						break
+					efrmsz = struct.unpack(v4l2_frmsizeenum_formatString, ret)
+				self._showFrmSz(efrmsz)
+				self._dictFrmSz[pformat].append(efrmsz)
+				index += 1
+                return self._dictFrmSz
 
 	# In  : show - to show info or not
 	# OUt : _cap - capability structure
