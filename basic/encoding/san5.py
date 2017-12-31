@@ -363,15 +363,15 @@ class san5Parser(object):
 		name = obj.name()
 		state = obj.attr('所在')
 		if name:
-			print '*****'+name,
+			print name,
 		else:
-			print '******** no',
+			print 'no',
 
 		print obj.index(), ', 君主=', obj.attr('君主'), ', 所在=', state,
 		#list is 0 based while index is 1 based
 		if state >= len(g_state): print 'unknown',
 		else: print '('+self._stateList[state-1].name()+')',
-		print ', 體力=', obj._misc.attr('體力')
+		print ', 體力=', obj._misc.attr('體力'), '    ',
 		print obj.attr('武力'),
 		print obj.attr('智力'),
 		print obj.attr('政治'),
@@ -426,6 +426,20 @@ class san5Parser(object):
 				for obj in self._banditByState[state]:
 					self._showPerson(obj, level)
 		
+
+	# list of bro to modify
+	def modifyBro(self, broList):
+		nrBro = len(self._banditList)
+		for index in broList:
+			index = int(index)
+			if index >= nrBro:
+				print 'brother index', index, 'out of range'
+			else:
+				obj = self._banditList[index-1]
+				print 'to modify', obj.name()
+				obj.set('武力', obj.attr('武力') + 25)
+		self.update()
+
 
 	# peopleList is a list of people in str
 	def _refillPerson(self, peopleList):
@@ -485,8 +499,8 @@ def chk_param():
 		help='index of object to query')
 	parser.add_argument('-v', action='store', dest='level', default=0,
 		help='verbose level, 0, 1 or 2')
-	parser.add_argument('-m', action='store', dest='match', default='',
-		help='match justice mercy courage 3 at a time, say -m 39 42 57')
+	parser.add_argument('-m', action='append', dest='modifyBro', default=[],
+		help='modify brother by 1-based index')
 	parser.add_argument('-r', action='store', dest='people', default=san5Parser.BANDIT_COUNT,
 		help='number of people to load')
 	parser.add_argument('-c', action='store', dest='showCountry', default=0,
@@ -503,6 +517,8 @@ if __name__ == '__main__':
 	sP = san5Parser(arg.file, int(arg.people))
 	if arg.modifyCountry:
 		sP.modifyCountry(int(arg.modifyCountry) )
+	elif arg.modifyBro:
+		sP.modifyBro(arg.modifyBro)
 	elif arg.brother and arg.leader:
 		sP.moveBrother2Country(arg.brother, int(arg.leader))
 	elif arg.showCountry:
