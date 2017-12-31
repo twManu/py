@@ -22,18 +22,30 @@ struct v4l2_capability {
 	__u32	device_caps;
 	__u32	reserved[3];
 };
+
+struct v4l2_fmtdesc {
+	__u32		    index;             /* Format number      */
+	enum v4l2_buf_type  type;              /* buffer type        */
+	__u32               flags;
+	__u8		    description[32];   /* Description string */
+	__u32		    pixelformat;       /* Format fourcc      */
+	__u32		    reserved[4];
+};
 '''
 
 g_ioctl = {
 	  'VIDIOC_QUERYBUF': VIDIOC_QUERYBUF
 	, 'VIDIOC_REQBUFS': VIDIOC_REQBUFS
 	, 'VIDIOC_QUERYCAP': (
-                VIDIOC_QUERYCAP
-                , '16s32s32sIII3I'
+		  VIDIOC_QUERYCAP
+		, '16s32s32sIII3I'
         )
 	, 'VIDIOC_G_PARM': VIDIOC_G_PARM
 	, 'VIDIOC_S_PARM': VIDIOC_S_PARM
-	, 'VIDIOC_ENUM_FMT': VIDIOC_ENUM_FMT
+	, 'VIDIOC_ENUM_FMT': (
+		  VIDIOC_ENUM_FMT
+		, 'III32sI4I'
+	)
 	, 'VIDIOC_S_FMT': VIDIOC_S_FMT
 	, 'VIDIOC_ENUM_FRAMESIZES': VIDIOC_ENUM_FRAMESIZES
 }
@@ -271,7 +283,31 @@ g_pix_fmt = {
 	, 'V4L2_PIX_FMT_JPGL': V4L2_PIX_FMT_JPGL
 	, 'V4L2_PIX_FMT_SE401': V4L2_PIX_FMT_SE401
 	, 'V4L2_PIX_FMT_S5C_UYVY_JPG': V4L2_PIX_FMT_S5C_UYVY_JPG
-        
+}
+
+#
+#enum v4l2_buf_type
+V4L2_BUF_TYPE_VIDEO_CAPTURE        = 1
+V4L2_BUF_TYPE_VIDEO_OUTPUT         = 2
+V4L2_BUF_TYPE_VIDEO_OVERLAY        = 3
+V4L2_BUF_TYPE_VBI_CAPTURE          = 4
+V4L2_BUF_TYPE_VBI_OUTPUT           = 5
+V4L2_BUF_TYPE_SLICED_VBI_CAPTURE   = 6
+V4L2_BUF_TYPE_SLICED_VBI_OUTPUT    = 7
+V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY = 8
+V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE = 9
+V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE  = 10
+g_v4l2_buf_type = {
+	  'V4L2_BUF_TYPE_VIDEO_CAPTURE': V4L2_BUF_TYPE_VIDEO_CAPTURE
+	, 'V4L2_BUF_TYPE_VIDEO_OUTPUT': V4L2_BUF_TYPE_VIDEO_OUTPUT
+	, 'V4L2_BUF_TYPE_VIDEO_OVERLAY': V4L2_BUF_TYPE_VIDEO_OVERLAY
+	, 'V4L2_BUF_TYPE_VBI_CAPTURE': V4L2_BUF_TYPE_VBI_CAPTURE
+	, 'V4L2_BUF_TYPE_VBI_OUTPUT': V4L2_BUF_TYPE_VBI_OUTPUT
+	, 'V4L2_BUF_TYPE_SLICED_VBI_CAPTURE': V4L2_BUF_TYPE_SLICED_VBI_CAPTURE
+	, 'V4L2_BUF_TYPE_SLICED_VBI_OUTPUT': V4L2_BUF_TYPE_SLICED_VBI_OUTPUT
+	, 'V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY': V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY
+	, 'V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE': V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+	, 'V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE': V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
 }
 
 #
@@ -332,6 +368,7 @@ class video:
                 self._fd = None
                 self._path='/dev/'+node
                 self._cap = None
+		self._dictFmt = {}          #dict of emulated format list for each type
                 #exist?
                 if not os.path.exists(self._path):
                         print 'Missing '+self._path
@@ -346,9 +383,46 @@ class video:
                         self._fd = None
                         self._path = None
 
+	# given format, return its name
+	def _nameOfDictByValue(self, dictObj, value):
+		for kk, vv in dictObj.iteritems():
+			if vv == value:
+				return kk
+		return 'unknown format'
 
-        # In  : show - to show info or not
+
+
+        # In  : enumType - type of format to enumerate, see g_v4l2_buf_type
+	#       show - to show info or not
         # Ret : capability unpacked
+        def enumfmt(self, capType=V4L2_BUF_TYPE_VIDEO_CAPTURE, show=False):
+                if not self._fd:
+                        return None
+                if not capType in self._dictFmt:
+			self._dictFmt[capType] = []
+			index = 0
+			while True:
+				efmt = struct.pack(g_ioctl['VIDIOC_ENUM_FMT'][1],\
+					index, capType, 0, '', 0, 0, 0, 0, 0)
+                        	try:
+                                	ret = fcntl.ioctl(self._fd, VIDIOC_ENUM_FMT, efmt)
+                                	ret = struct.unpack(g_ioctl['VIDIOC_ENUM_FMT'][1], ret)
+					#print 'got enum fmt '+ret[3]
+					if not index:
+						print "Format: "+self._nameOfDictByValue(g_v4l2_buf_type, capType)
+					print '\t'+self._nameOfDictByValue(g_pix_fmt, ret[4])
+					self._dictFmt[capType].append(ret[4])
+					index += 1
+				except:
+					if not index:
+						print 'fail to enum fmt'
+                                	break
+                return self._dictFmt[capType]
+
+
+	# In  : show - to show info or not
+	# OUt : _cap - capability structure
+	# Ret : capability unpacked
         def querycap(self, show=False):
                 if not self._fd:
                         return None
@@ -364,12 +438,11 @@ class video:
                                         print '\tbacked by ' + self._cap[0],
                                         print '@ '+self._cap[2]
                                         #capabilities
-                                        if self._cap[4]:
-                                                print 'Capabilities:'
-                                                for key in g_cap:
-                                                        if self._cap[4] & g_cap[key]:
-                                                                print '\t'+key
-                                
+					if self._cap[4]:
+						print 'Capabilities:'
+						for key in g_cap:
+							if self._cap[4] & g_cap[key]:
+								print '\t'+key
                         except:
                                 print "failure"
                                 return None
@@ -393,4 +466,5 @@ class video:
 #main
 if __name__ == '__main__':
         dev = video('video0')
-        dev.querycap(True)
+        dev.querycap(show=True)
+	dev.enumfmt(show=True)
