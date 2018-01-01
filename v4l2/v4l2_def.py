@@ -61,6 +61,23 @@ struct v4l2_streamparm {
 	__u32              readbuffers;   /*  # of buffers for read */
 	__u32		   reserved[4];
 };
+
+struct v4l2_frmivalenum {
+	__u32			index;		/* Frame format index */
+	__u32			pixel_format;	/* Pixel format */
+	__u32			width;		/* Frame width */
+	__u32			height;		/* Frame height */
+	__u32			type;		/* Frame interval type the device supports. */
+
+	//union {					/* Frame interval */
+	//	struct v4l2_fract		discrete;
+	//	struct v4l2_frmival_stepwise	stepwise;
+	//};
+	__u32   numerator;
+	__u32   denominator;
+
+	__u32	reserved[2];			/* Reserved space for future use */
+};
 '''
 
 #
@@ -278,6 +295,16 @@ v4l2_streamparm5_extendedmode = 5
 v4l2_streamparm6_readbuffers = 6
 v4l2_streamparm7_reserved = 7
 v4l2_streamparm_formatString ='IIIIIII4I'
+
+v4l2_frmivalenum0_index = 0
+v4l2_frmivalenum1_pixel_format = 1
+v4l2_frmivalenum2_width = 2
+v4l2_frmivalenum3_height = 3
+v4l2_frmivalenum4_type = 4
+v4l2_frmivalenum5_numerator = 5
+v4l2_frmivalenum6_denominator = 6
+v4l2_frmivalenum7_reserved = 7
+v4l2_frmivalenum_formatString ='IIIIIII2I'
 
 g_VIDIOC = {
 	  'VIDIOC_QUERYBUF': VIDIOC_QUERYBUF
