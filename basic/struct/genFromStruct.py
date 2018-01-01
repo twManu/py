@@ -181,7 +181,7 @@ class cStruct():
 	# Ret : True - if variable is parsed
 	#       False - not a struct
 	def _structStart(self, line):
-		if not self._inStruct and re.search('struct ', line):
+		if not self._inStruct and re.search(r'struct[ \t]', line):
 			got, lastWord, resetLine = self._lastWord(line)
 			if got:
 				if self._verbose>=1:
@@ -277,12 +277,14 @@ class cStruct():
 # usage: genFromStruct.py SRC [DBG_LEVEL=0]
 #
 if __name__ == '__main__':
-	if len(sys.argv) < 2:
-		print 'Please provide file name'
-		sys.exit(-1)
-	elif len(sys.argv) == 2:
-		level = 0
-	else:
-		level = int(sys.argv[2])
-	obj = cStruct(sys.argv[1], True, level)
+	parser = argparse.ArgumentParser(description="auto generate python field index and format \
+		string of C program struct, where \'struct\' and \'{\' have to be the same line. \
+		constant and string for enumerate if \'#define DICTIONARY_NAME\' is present")
+	parser.add_argument("srcFile")
+	parser.add_argument('-v', type=int, action='store', dest='dbgLevel', default=0,
+		choices=[0, 1, 2])
+	parser.add_argument('-o', action='store_true', default=False,
+		dest='overwrite', help='overwrite original source file or just print in screen')
+	args = parser.parse_args()
+	obj = cStruct(args.srcFile, args.overwrite, args.dbgLevel)
 	
