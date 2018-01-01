@@ -96,9 +96,9 @@ class video:
 			print 'x',
 			print frmSzret[v4l2_frmsizeenum4_max_width],
 			print ') ... (',
-			print frmSz[v4l2_frmsizeenum3_min_height],
+			print frmSz[v4l2_frmsizeenum6_min_height],
 			print 'x',
-			print frmSz[v4l2_frmsizeenum4_max_height],
+			print frmSz[v4l2_frmsizeenum7_max_height],
 			print ')'
 		elif frmSz[v4l2_frmsizeenum2_type] == V4L2_FRMIVAL_TYPE_STEPWISE:
 			print frmSz[v4l2_frmsizeenum3_min_width],
@@ -107,14 +107,43 @@ class video:
 			print '+ ',
 			print frmSz[v4l2_frmsizeenum5_step_width],
 			print ') ... (',
-			print frmSz[v4l2_frmsizeenum3_min_height],
+			print frmSz[v4l2_frmsizeenum6_min_height],
 			print 'x',
-			print frmSz[v4l2_frmsizeenum4_max_height],
+			print frmSz[v4l2_frmsizeenum7_max_height],
 			print '+',
 			print frmSz[v4l2_frmsizeenum8_step_height],
 			print ')'
 		else:
 			print 'invalid type'
+
+	# check frame interval supported by given format/w/h
+	# pformat/width/height - pix format/width/height
+	# 
+	def enumFrameIval(self, pformat, width, height):
+		if not self._fd:
+                        return None
+		index = 0
+		#print 'checking interval', pformat, width, height
+		while True:
+			efrmIval = struct.pack(v4l2_frmivalenum_formatString, index, pformat, width, height, 0, 0\
+				, 0, 0, 0)
+                       	try:
+				ret = fcntl.ioctl(self._fd, VIDIOC_ENUM_FRAMEINTERVALS, efrmIval)
+			except:
+				if not index:
+					print 'fail to enum frame interval'
+				break
+			efrmIval = struct.unpack(v4l2_frmivalenum_formatString, ret)
+			#todo hard coding 1=descrete
+			if efrmIval[v4l2_frmivalenum4_type] != 1:
+				print 'interval type for', pformat, width, height, ' not supported'
+			else:
+				if 0 == index:
+					print('\t\t   %d/%d' % (efrmIval[v4l2_frmivalenum5_numerator], efrmIval[v4l2_frmivalenum6_denominator])),
+				else:
+					print(',%d/%d' % (efrmIval[v4l2_frmivalenum5_numerator], efrmIval[v4l2_frmivalenum6_denominator])),
+			index += 1
+		print
 
 
 	# check frame size supported by given format
@@ -151,6 +180,7 @@ class video:
 					efrmsz = struct.unpack(v4l2_frmsizeenum_formatString, ret)
 				self._showFrmSz(efrmsz)
 				self._dictFrmSz[pformat].append(efrmsz)
+				self.enumFrameIval(pformat, efrmsz[v4l2_frmsizeenum3_min_width], efrmsz[v4l2_frmsizeenum4_max_width])
 				index += 1
                 return self._dictFrmSz
 
