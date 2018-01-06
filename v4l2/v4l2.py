@@ -4,6 +4,31 @@ import fcntl, os, sys, struct, argparse
 from v4l2_def import *
 
 
+# calling seq:
+#	obj=contruct
+#	obj.querycap()
+#	obj.enumfmt()
+#
+# struct:
+#	_dictFmt = {
+#		<capture type1>: {
+#			'struct' : <ioctl structure>
+#			<pix fmt1>: {
+#				'struct' : <ioctl structure>
+#				'rate' : [ framerate1, framerate2, ... ]
+#			}
+#			<pix fmt2>: {
+#				'struct' : <ioctl structure>
+#				'rate' : [ framerate1, framerate2, ... ]
+#			}
+#			:
+#		}	
+#		<capture type2>: {
+#			'struct' : <ioctl structure>
+#			:
+#		}
+#		:
+#	}
 class video:
         #init device
 	# node - 'videoX'
@@ -13,7 +38,6 @@ class video:
                 self._path='/dev/'+node
                 self._cap = None
 		self._dictFmt = {}          #dict of emulated format list for each type
-		self._dictFrmSz = {}        #dict of emulated format list for each pix format
 		self._verbose = verbose
                 #exist?
                 if not os.path.exists(self._path):
@@ -48,10 +72,11 @@ class video:
 
 
         # In  : enumType - type of format to enumerate, see g_V4L2_BUF_TYPE
-	# In  : _verbose - debug level
+	#       _verbose - debug level
 	#         0: none
 	#         1: success
 	#         2: struct
+	# Out : _dictFmt[given type] created if not
         # Ret : capability unpacked
         def enumfmt(self, capType=V4L2_BUF_TYPE_VIDEO_CAPTURE):
                 if not self._fd:
@@ -64,7 +89,7 @@ class video:
 			return None
 		#create if not yet
                 if not capType in self._dictFmt:
-			self._dictFmt[capType] = []
+			self._dictFmt[capType] = {}
 			index = 0
 			while True:
 				efmt = struct.pack(v4l2_fmtdesc_formatString\
@@ -72,21 +97,40 @@ class video:
                         	try:
                                 	ret = struct.unpack(v4l2_fmtdesc_formatString\
 						, fcntl.ioctl(self._fd, VIDIOC_ENUM_FMT, efmt))
+					self._dictFmt[capType]['struct'] = ret
 					if self._verbose:
-						if 2 <= self._verbose:
+						if self._verbose > 2:
 							print 'got enum fmt '+ret[v4l2_fmtdesc3_description]
 						if not index:
 							self._showFmt(ret, capType)
 						else:
 							self._showFmt(ret, -1)
-					self._dictFmt[capType].append(ret[v4l2_fmtdesc4_pixelformat])
-					self.enumFrameSz(ret[v4l2_fmtdesc4_pixelformat])
+					pformat = ret[v4l2_fmtdesc4_pixelformat]
+					if not pformat in self._dictFmt[capType]:
+						self._dictFmt[capType][pformat] = {}
+						self._enumFrameSz(self._dictFmt[capType][pformat], pformat)
+					else:
+						print 'Duplicate format', self._nameOfDictByValue(g_V4L2_PIX_FMT, pformat)
 					index += 1
 				except:
 					if not index and self._verbose:
 						print 'fail to enum fmt'
                                 	break
                 return self._dictFmt[capType]
+
+	# print result of format enumeration
+	def printFmt(self):
+		for capType in self._dictFmt:
+			index = 0
+			if not index:
+				self._showFmt(self._dictFmt[capType]['struct'], capType)
+			else:
+				self._showFmt(self._dictFmt[capType]['struct'], -1)
+			for pformat in self._dictFmt[capType]:
+				if pformat != 'struct':
+					#real g_V4L2_PIX_FMT
+					self.printFramerate(self._dictFmt[capType][pformat], True)
+			index += 1
 
 
 	# frmSz is packed
@@ -124,32 +168,39 @@ class video:
 			print 'invalid type'
 
 
-	# In  : pformat - pixel format
-	#       wxh - tuple of (width, height)
-	#       _dictFrmSz - data base of frame support
-	def _printFramerate(self, pformat, wxh):
-		if self._dictFrmSz and pformat in self._dictFrmSz and \
-		   wxh in self._dictFrmSz[pformat] and 'rate' in self._dictFrmSz[pformat][wxh]:
-			index = 0
-			for rr in self._dictFrmSz[pformat][wxh]['rate']:
-				if not index:
-					print('\t\t   %d/%d' % rr),
-				else:
-					print(',%d/%d' % rr),
-				index += 1
-			print
+	# In  : dictFrmSz - dictionary in
+	#             [(w ,h)]['struct'] = structure from ioctl
+	#             [(w ,h)]['rate'] = <list of tuple of (numerator, denominator)>
+	#
+	def printFramerate(self, dictFrmSz, showDetail):
+		if dictFrmSz:
+			for wxh in dictFrmSz:
+				#print V4L2_FRMIVAL_TYPE_DISCRETE : ( 800 x 600 )
+				self._showFrmSz(dictFrmSz[wxh]['struct'])
+				if not showDetail:
+					continue
+				#print 1/30 ,1/24 ,1/20 ,1/15 ,1/10 ,2/15 ,1/5					
+				index = 0
+				for rr in dictFrmSz[wxh]['rate']:
+					if not index:
+						print('\t\t   %d/%d' % rr),
+					else:
+						print(',%d/%d' % rr),
+					index += 1
+				print
 
 
 	# check frame interval supported by given format/w/h
+	# dictFrmSz - dictionary of frame size we are enumerating
 	# pformat/width/height - pix format/width/height
 	# 
-	def enumFrameIval(self, pformat, width, height):
+	def _enumFrameIval(self, dictFrmSz, pformat, width, height):
 		if not self._fd:
                         return None
 		index = 0
 		#make sure list created
-		if not 'rate' in self._dictFrmSz[pformat][(width, height)]:
-			self._dictFrmSz[pformat][(width, height)]['rate'] = []
+		if not 'rate' in dictFrmSz:
+			dictFrmSz['rate'] = []
 		#print 'checking interval', pformat, width, height
 		while True:
 			efrmIval = struct.pack(v4l2_frmivalenum_formatString, index, pformat, width, height, 0, 0\
@@ -166,55 +217,45 @@ class video:
 				print 'interval type for', pformat, width, height, ' not supported'
 			else:
 				framerate = ( efrmIval[v4l2_frmivalenum5_numerator], efrmIval[v4l2_frmivalenum6_denominator] )
-				self._dictFrmSz[pformat][(width, height)]['rate'].append( framerate )
+				dictFrmSz['rate'].append( framerate )
 			index += 1
 
 
 	# check frame size supported by given format
-	# pformat - pix format
+	# In  : dictFrmSz - dict of frame size
+	#       pformat - pix format we are enumerating
 	#
-	def enumFrameSz(self, pformat):
+	def _enumFrameSz(self, dictFrmSz, pformat):
 		if not self._fd:
                         return None
-		if not pformat in self._dictFrmSz:
-			self._dictFrmSz[pformat] = {}               #each is of key (w,h)
-			#print 'creating', pformat
-			index = 0
-			while True:
-				'''
-				efrmsz = struct.pack(v4l2_frmsizeenum_formatString0, index, pformat, 0, 0, 0)
-                        	try:
-                               		ret = fcntl.ioctl(self._fd, VIDIOC_ENUM_FRAMESIZES, efrmsz)
-				except:
-					if not index:
-						print 'fail to enum frame size'
-                               		break
-				efrmsz = struct.unpack(v4l2_frmsizeenum_formatString0, ret)
-				if ret[v4l2_frmsizeenum2_type] != V4L2_FRMIVAL_TYPE_DISCRETE:
-				'''
-				efrmsz = struct.pack(v4l2_frmsizeenum_formatString, index, pformat, 0, 0, 0\
-						, 0, 0, 0, 0, 0, 0)
-                        	try:
-                               		ret = fcntl.ioctl(self._fd, VIDIOC_ENUM_FRAMESIZES, efrmsz)
-				except:
-					if not index and self._verbose >= 2:
-						print 'fail to enum frame size 2'
-					break
-				efrmsz = struct.unpack(v4l2_frmsizeenum_formatString, ret)
-				w = efrmsz[v4l2_frmsizeenum3_min_width]
-				h = efrmsz[v4l2_frmsizeenum4_max_width]
-				if (w, h) in self._dictFrmSz[pformat]:
-					print 'Duplicated frame size', w, 'x', h, '... ignored !!!!'
-					continue
-				self._dictFrmSz[pformat][(w, h)] = {}     #each is of key 'struct' and 'rate'
-				self._dictFrmSz[pformat][(w, h)]['struct'] = efrmsz
-				self.enumFrameIval(pformat, w, h)
-				if self._verbose:
-					self._showFrmSz(efrmsz)
-					if self._verbose >= 2:
-						self._printFramerate(pformat, (w, h))
-				index += 1
-                return self._dictFrmSz
+		#print 'creating', pformat
+		index = 0
+		while True:
+			efrmsz = struct.pack(v4l2_frmsizeenum_formatString, index, pformat, 0, 0, 0\
+					, 0, 0, 0, 0, 0, 0)
+			try:
+				ret = fcntl.ioctl(self._fd, VIDIOC_ENUM_FRAMESIZES, efrmsz)
+			except:
+				if not index and self._verbose >= 2:
+					print 'fail to enum frame size 2'
+				break
+			efrmsz = struct.unpack(v4l2_frmsizeenum_formatString, ret)
+			w = efrmsz[v4l2_frmsizeenum3_min_width]
+			h = efrmsz[v4l2_frmsizeenum4_max_width]
+			if (w, h) in dictFrmSz:
+				print 'Duplicated frame size', w, 'x', h, '... ignored !!!!'
+			else:
+				if self._verbose > 2:
+					print 'found', (w, h)
+				dictFrmSz[(w, h)] = {}     #each is of key 'struct' and 'rate'
+				dictFrmSz[(w, h)]['struct'] = efrmsz
+				self._enumFrameIval(dictFrmSz[(w, h)], pformat, w, h)
+			index += 1
+		if 1==self._verbose:
+			self.printFramerate(dictFrmSz, False)
+		elif 2==self._verbose:
+			self.printFramerate(dictFrmSz, True)
+		return dictFrmSz
 
 
 	def printCap(self):
@@ -274,11 +315,15 @@ class video:
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-v', type=int, action='store', dest='verbose', default=0,
-		choices=[0, 1, 2])
+		choices=[0, 1, 2, 3])
 	parser.add_argument('-d', type=int, action='store', default=0,
 		dest='DEV_NR', help='it stands for /dev/video[DEV_NR]')
+	parser.add_argument('-q', action='store_true', default=False,
+		dest='query', help='show device information')
 	args = parser.parse_args()
-	dev = video('video'+str(args.devNr), args.verbose)
+	dev = video('video'+str(args.DEV_NR), args.verbose)
         dev.querycap()
 	dev.enumfmt()
-
+	if args.query and not args.verbose:
+		dev.printCap()
+		dev.printFmt()
