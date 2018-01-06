@@ -12,19 +12,45 @@ from v4l2_def import *
 # struct:
 #	_dictFmt = {
 #		<capture type1>: {
-#			'struct' : <ioctl structure>
 #			<pix fmt1>: {
-#				'struct' : <ioctl structure>
-#				'rate' : [ framerate1, framerate2, ... ]
+#				'struct' : <format1 structure>
+#				'frame size1' : {
+#					'struct' : <frame size1 structure>
+#					'rate' : [ framerate1, framerate2, ... ]
+#				}
+#				'frame size2' : {
+#					'struct' : <frame size2 structure>
+#					'rate' : [ framerate1, framerate2, ... ]
+#				}
+#				:
 #			}
 #			<pix fmt2>: {
-#				'struct' : <ioctl structure>
-#				'rate' : [ framerate1, framerate2, ... ]
+#				'struct' : <format1 structure>
+#				'frame size1' : {
+#					'struct' : <frame size1 structure>
+#					'rate' : [ framerate1, framerate2, ... ]
+#				}
+#				'frame size2' : {
+#					'struct' : <frame size2 structure>
+#					'rate' : [ framerate1, framerate2, ... ]
+#				}
+#				:
 #			}
 #			:
 #		}	
 #		<capture type2>: {
-#			'struct' : <ioctl structure>
+#			<pix fmt1>: {
+#				'struct' : <format1 structure>
+#				'frame size1' : {
+#					'struct' : <frame size1 structure>
+#					'rate' : [ framerate1, framerate2, ... ]
+#				}
+#				'frame size2' : {
+#					'struct' : <frame size2 structure>
+#					'rate' : [ framerate1, framerate2, ... ]
+#				}
+#				:
+#			}
 #			:
 #		}
 #		:
@@ -65,10 +91,15 @@ class video:
 	# Show format name
 	# In  : capType - 0 means not to show title and type
 	#               - otherwise show title in advance
-	def _showFmt(self, fmt, capType):
+	def _showFmt(self, fmt, capType, indexHint):
 		if capType>=0:
 			print "Format of "+self._nameOfDictByValue(g_V4L2_BUF_TYPE, capType)+':'
-		print '\t'+self._nameOfDictByValue(g_V4L2_PIX_FMT, fmt[v4l2_fmtdesc4_pixelformat])
+		if indexHint >= 0:
+			print '\t-F '+str(indexHint)+',',
+		else:
+			print '\t',
+		print self._nameOfDictByValue(g_V4L2_PIX_FMT, fmt[v4l2_fmtdesc4_pixelformat])
+
 
 
         # In  : enumType - type of format to enumerate, see g_V4L2_BUF_TYPE
@@ -97,17 +128,17 @@ class video:
                         	try:
                                 	ret = struct.unpack(v4l2_fmtdesc_formatString\
 						, fcntl.ioctl(self._fd, VIDIOC_ENUM_FMT, efmt))
-					self._dictFmt[capType]['struct'] = ret
 					if self._verbose:
 						if self._verbose > 2:
 							print 'got enum fmt '+ret[v4l2_fmtdesc3_description]
 						if not index:
-							self._showFmt(ret, capType)
+							self._showFmt(ret, capType, -1)
 						else:
-							self._showFmt(ret, -1)
+							self._showFmt(ret, -1, -1)
 					pformat = ret[v4l2_fmtdesc4_pixelformat]
 					if not pformat in self._dictFmt[capType]:
 						self._dictFmt[capType][pformat] = {}
+						self._dictFmt[capType][pformat]['struct'] = ret
 						self._enumFrameSz(self._dictFmt[capType][pformat], pformat)
 					else:
 						print 'Duplicate format', self._nameOfDictByValue(g_V4L2_PIX_FMT, pformat)
@@ -120,22 +151,26 @@ class video:
 
 	# print result of format enumeration
 	def printFmt(self):
+		indexCap = 0
 		for capType in self._dictFmt:
-			index = 0
-			if not index:
-				self._showFmt(self._dictFmt[capType]['struct'], capType)
-			else:
-				self._showFmt(self._dictFmt[capType]['struct'], -1)
+			indexFmt = 0
+			hint = '-T ' + str(indexCap) + ', '
+			print hint + self._nameOfDictByValue(g_V4L2_BUF_TYPE, capType)
 			for pformat in self._dictFmt[capType]:
-				if pformat != 'struct':
-					#real g_V4L2_PIX_FMT
-					self.printFramerate(self._dictFmt[capType][pformat], True)
-			index += 1
+				self._showFmt(self._dictFmt[capType][pformat]['struct'], -1, indexFmt)
+				#real g_V4L2_PIX_FMT
+				self.printFramerate(self._dictFmt[capType][pformat], True, True)
+				indexFmt += 1
+			indexCap += 1
 
 
 	# frmSz is packed
-	def _showFrmSz(self, frmSz):
-		print '\t\t'+self._nameOfDictByValue(g_V4L2_FRMIVAL, frmSz[v4l2_frmsizeenum2_type])+' : (',
+	def _showFrmSz(self, frmSz, hintIndex):
+		if hintIndex >= 0:
+			print '\t\t-D '+str(hintIndex)+',',
+		else:
+			print '\t\t',
+		print self._nameOfDictByValue(g_V4L2_FRMIVAL, frmSz[v4l2_frmsizeenum2_type])+' : (',
 		if frmSz[v4l2_frmsizeenum2_type] == V4L2_FRMIVAL_TYPE_DISCRETE:
 			#width x height
 			print frmSz[v4l2_frmsizeenum3_min_width],
@@ -172,11 +207,16 @@ class video:
 	#             [(w ,h)]['struct'] = structure from ioctl
 	#             [(w ,h)]['rate'] = <list of tuple of (numerator, denominator)>
 	#
-	def printFramerate(self, dictFrmSz, showDetail):
+	def printFramerate(self, dictFrmSz, showDetail, hint=False):
 		if dictFrmSz:
+			indexFrm = 0
 			for wxh in dictFrmSz:
+				if wxh == 'struct':
+					continue
 				#print V4L2_FRMIVAL_TYPE_DISCRETE : ( 800 x 600 )
-				self._showFrmSz(dictFrmSz[wxh]['struct'])
+				if not hint:
+					indexFrm = -1
+				self._showFrmSz(dictFrmSz[wxh]['struct'], indexFrm)
 				if not showDetail:
 					continue
 				#print 1/30 ,1/24 ,1/20 ,1/15 ,1/10 ,2/15 ,1/5					
@@ -188,6 +228,7 @@ class video:
 						print(',%d/%d' % rr),
 					index += 1
 				print
+				indexFrm += 1
 
 
 	# check frame interval supported by given format/w/h
