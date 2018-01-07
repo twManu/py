@@ -86,6 +86,17 @@ class gstv4l2(gst):
 		self.setParam(devnr=0, fmt=V4L2_PIX_FMT_MJPEG, w=1920, h=1080, raten=30, rated=1)
 		self._devnr = 0
 
+	# return '0:V4L2_PIX_FMT_MJPEG ...'
+	def getSupportFmtStr(self):
+		helpStr=''
+		index = 0
+		for fmt in self.supportFmt:
+			helpStr += str(index) + ' :' + nameOfDictByValue(g_V4L2_PIX_FMT, fmt)
+			index += 1
+			if index != len(gstv4l2.supportFmt):
+				helpStr += ', '
+		return helpStr
+
 
 	# foramt, width, height, rate_num, rate_denom
 	# fmt 
@@ -143,6 +154,7 @@ class gstv4l2(gst):
 
 #main
 if __name__ == '__main__':
+	obj = gstv4l2(False)           #just to getSupportFmtStr
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-v', type=int, action='store', dest='verbose', default=0,
 		choices=[0, 1, 2, 3])
@@ -151,16 +163,10 @@ if __name__ == '__main__':
 	parser.add_argument('-H', type=int, action='store', dest='height', default=0)
 	parser.add_argument('-N', type=int, action='store', dest='numerator', default=0)
 	parser.add_argument('-D', type=int, action='store', dest='denominator', default=0)
-	helpStr=''
-	index = 0
-	for fmt in gstv4l2.supportFmt:
-		helpStr += str(index) + ' :' + nameOfDictByValue(g_V4L2_PIX_FMT, fmt)
-		index += 1
-		if index != len(gstv4l2.supportFmt):
-			helpStr += ', '
 	parser.add_argument('-f', type=int, action='store', dest='format', default=0,
-		choices=[0, 1, 2], help=helpStr)
+		choices=[0, 1, 2], help=obj.getSupportFmtStr())
 	args = parser.parse_args()
+	#apply arg
 	obj = gstv4l2(args.verbose)
 	obj.setParam(
 		devnr=args.devnr,
