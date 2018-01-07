@@ -80,25 +80,17 @@ class video:
                         self._path = None
 
 
-	# given format, return its name
-	def _nameOfDictByValue(self, dictObj, value):
-		for kk, vv in dictObj.iteritems():
-			if vv == value:
-				return kk
-		return 'unknown format'
-
-
 	# Show format name
 	# In  : capType - 0 means not to show title and type
 	#               - otherwise show title in advance
 	def _showFmt(self, fmt, capType, indexHint):
 		if capType>=0:
-			print "Format of "+self._nameOfDictByValue(g_V4L2_BUF_TYPE, capType)+':'
+			print "Format of "+nameOfDictByValue(g_V4L2_BUF_TYPE, capType)+':'
 		if indexHint >= 0:
 			print '\t-F '+str(indexHint)+',',
 		else:
 			print '\t',
-		print self._nameOfDictByValue(g_V4L2_PIX_FMT, fmt[v4l2_fmtdesc4_pixelformat])
+		print nameOfDictByValue(g_V4L2_PIX_FMT, fmt[v4l2_fmtdesc4_pixelformat])
 
 
 
@@ -141,7 +133,7 @@ class video:
 						self._dictFmt[capType][pformat]['struct'] = ret
 						self._enumFrameSz(self._dictFmt[capType][pformat], pformat)
 					else:
-						print 'Duplicate format', self._nameOfDictByValue(g_V4L2_PIX_FMT, pformat)
+						print 'Duplicate format', nameOfDictByValue(g_V4L2_PIX_FMT, pformat)
 					index += 1
 				except:
 					if not index and self._verbose:
@@ -155,7 +147,7 @@ class video:
 		for capType in self._dictFmt:
 			indexFmt = 0
 			hint = '-T ' + str(indexCap) + ', '
-			print hint + self._nameOfDictByValue(g_V4L2_BUF_TYPE, capType)
+			print hint + nameOfDictByValue(g_V4L2_BUF_TYPE, capType)
 			for pformat in self._dictFmt[capType]:
 				self._showFmt(self._dictFmt[capType][pformat]['struct'], -1, indexFmt)
 				#real g_V4L2_PIX_FMT
@@ -170,7 +162,7 @@ class video:
 			print '\t\t-D '+str(hintIndex)+',',
 		else:
 			print '\t\t',
-		print self._nameOfDictByValue(g_V4L2_FRMIVAL, frmSz[v4l2_frmsizeenum2_type])+' : (',
+		print nameOfDictByValue(g_V4L2_FRMIVAL, frmSz[v4l2_frmsizeenum2_type])+' : (',
 		if frmSz[v4l2_frmsizeenum2_type] == V4L2_FRMIVAL_TYPE_DISCRETE:
 			#width x height
 			print frmSz[v4l2_frmsizeenum3_min_width],

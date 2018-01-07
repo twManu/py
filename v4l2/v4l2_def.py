@@ -1,5 +1,11 @@
 #!/usr/bin/python
 
+# given format, return its name
+def nameOfDictByValue(dictObj, value):
+	for kk, vv in dictObj.iteritems():
+		if vv == value:
+			return kk
+	return 'unknown format'
 
 '''
 struct v4l2_capability {
