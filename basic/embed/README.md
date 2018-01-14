@@ -13,6 +13,7 @@ success call:
 	$ ./call_function py_function multiply1 2 3
 	$ ./call_class py_thread MyThread run
 	$ ./call_class py_class Multiply multiply
+	$ ./call_class celsius c2 farenheit
 	$ ./call_thread py_thread MyThread run
 	# a b look dummy
 	$ ./call_thread_2 py_thread MyThread a b

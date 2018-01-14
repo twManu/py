@@ -40,8 +40,11 @@ int main(int argc, char *argv[])
     	{
         	arg[i] = atoi(argv[i + 4]);
     	}
-		// Call a method of the class with two parameters
-    	pValue = PyObject_CallMethod(pInstance, argv[3], "(ii)", arg[0], arg[1]);
+        if( i>1 )   //assume 2, todo
+		    // Call a method of the class with two parameters
+    	    pValue = PyObject_CallMethod(pInstance, argv[3], "(ii)", arg[0], arg[1]);
+        else
+            pValue = PyObject_CallMethod(pInstance, argv[3], "(i)", arg[0]);
 
     } else
     {
