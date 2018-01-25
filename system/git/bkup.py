@@ -3,58 +3,78 @@
 import re, commands, sys, os, argparse
 
 class git(object):
-	def __init__(self, url, verbose=0):
-		self._local = self._absPath(url)
+	#fail and exit with message
+	def _exit(self, msg):
+		print msg
+		sys.exit(-1)
+
+
+	#init with url or working directory
+	# In  :
+	#	url - first priority check with url
+	#	wdir - working directory, default as current directory
+	#
+	def __init__(self, url='', wdir='.', verbose=0):
 		self._verbose = verbose
-		self._cmdPrefix = ''
-		if self._local:
-			# user provide a local dict
-			path = self._local+'/.git'
-			if not os.path.isdir(path):
-				print self._local, 'is not a git directory'
-				sys.exit(-1)
-			self._url = self.getRemote(False)
-			if not self._url:
-				print 'missing remote url'
-				sys.exit(-1)
-		else:
-			# user provide a remote repository
+		self._cmdPrefix = ''           #for git command 'cd path; git' XXXX
+		self._remoteDB = {}
+		if url:
 			self._url=url
-			if not self._url:
-				print 'missing url'
-				sys.exit(-1)
-			self._local = self.clone()
+			if re.search(r':', url):
+				# user provide a remote repository
+				self._local = self.clone()
+			elif os.path.isdir(url):
+				# user provide a file path repository
+				self._local = self.clone(wdir)
+				self.getRemote()
+			else:
+				self._exit('missing url')
+		elif wdir:
+			# user provide a local working directory
+			self._local = self._absPath(wdir)
+			if self._local:
+				path = self._local+'/.git'
+				if not os.path.isdir(path):
+					self._exit(self._local+' is not a git directory')
+				self.getRemote()
+				if not self._remoteDB:
+					self._exit('missing remote url')
+				elif 'origin(push)' in self._remoteDB:
+					self._url = self._remoteDB['origin(push)']
+				elif 'origin(fetch)' in self._remoteDB:
+					self._url = self._remoteDB['origin(fetch)']
+				else:
+					self._exit('missing origin')
+			else:
+				self._exit('missing working directory')
+		else:
+			self._exit('missing parameter')
 		self._cmdPrefix = 'cd '+self._local+'; git '
 		self._fname = self._gitName(self._local)
-		print 'git url:', self._url
-		print 'git dir:', self._local
+		if self._verbose:
+			print 'git url:', self._url
+			print 'git dir:', self._local
 
 
 	# return remote info
 	# In  :
 	#	_local - must be the local directory
-	#	allRemote - true to return all remote in dict
-	#	           false to return 1st origin
-	# Out :
-	#	full dict if allRemote
-	#	dict['origin(push'] if not allRemote
-	#	None if nothing
-	def getRemote(self, allRemote=True):
+	#	force - re-get remote database
+	# Out : full dict if remote database
+	def getRemote(self, force=False):
 		if self._verbose:
 			print 'Querying remote of', self._local
-		theDict = {}
+		if not force and self._remoteDB:
+			return self._remoteDB
+		self._remoteDB = {}          #clear
 		cmd = 'cd '+self._local+'; git remote -v'
 		for line in commands.getoutput(cmd).split('\n'):
 			line = line.strip()
 			if line:
 				words = line.split()
-				theDict[words[0]+words[2]] = words[1]
-		if allRemote:
-			return theDict
-		elif 'origin(push)' in theDict:
-			return theDict['origin(push)']
-		else:
-			return None
+				self._remoteDB[words[0]+words[2]] = words[1]
+		return self._remoteDB
+
 
 	# return status in output
 	def status(self):
@@ -89,6 +109,7 @@ class git(object):
 
 	# clone repository to dir with new name
 	# In :
+	#	_url - url to clone
 	#	cdPath - directory to clone
 	#	     default is curent directory
 	#	name - new name
@@ -97,6 +118,7 @@ class git(object):
 	def clone(self, cdPath='.', name=''):
 		if self._verbose:
 			print 'Cloning', self._url,
+		#todo existence
 		#comopse command and path
 		path = cdPath
 		cmd = ''
@@ -112,11 +134,11 @@ class git(object):
 		path += '/'+name
 		path = os.path.abspath(path)
 		#run clone
-		commands.getoutput(cmd)
+		os.system(cmd)
 		if not os.path.isdir(path+'/.git'):
-			print 'missing ', path+'/.git'
-			sys.exit(-1)
+			self._exit('missing '+path+'/.git')
 		return path
+
 
 	def backup(self, url2=''):
 		target = '/tmp/'+self._fname
@@ -150,13 +172,13 @@ if __name__ == '__main__':
 
 	arg = check_param()
 	if arg.path:
-		rp = git(arg.path, arg.verbose)
+		rp = git(wdir=arg.path, verbose=arg.verbose)
 		if arg.query:
 			print rp.getRemote()
 			rp.status()
-		rp.backup()
+		#rp.backup()
 	elif arg.url:
-		rp = git(arg.url, arg.verbose)
+		rp = git(url=arg.url, verbose=arg.verbose)
 	else:
 		print 'no url provided'
 
