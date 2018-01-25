@@ -174,7 +174,10 @@ if __name__ == '__main__':
 	if arg.path:
 		rp = git(wdir=arg.path, verbose=arg.verbose)
 		if arg.query:
-			print rp.getRemote()
+			db=rp.getRemote()
+			if db:
+				for remote in db:
+					print remote+' :'+db[remote]
 			rp.status()
 		#rp.backup()
 	elif arg.url:
