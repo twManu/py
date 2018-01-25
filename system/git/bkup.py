@@ -25,6 +25,7 @@ class git(object):
 				sys.exit(-1)
 			self._local = self.clone()
 		self._cmdPrefix = 'cd '+self._local+'; git '
+		self._fname = self._gitName(self._local)
 		print 'git url:', self._url
 		print 'git dir:', self._local
 
@@ -76,6 +77,16 @@ class git(object):
 		return ''
 
 
+	# return name after, excluding, last '/'
+	#
+	def _gitName(self, thePath):
+		name = ''
+		match = re.search(r'[^/]+$', thePath)
+		if match:
+			name = match.group(0)
+		return name	
+
+
 	# clone repository to dir with new name
 	# In :
 	#	cdPath - directory to clone
@@ -95,11 +106,9 @@ class git(object):
 		if name:
 			cmd += ' '+name
 		else:
-			match = re.search(r'[^/]+$', self._url)
-			if match:
-				name = match.group(0)
-				if self._verbose:
-					print 'to ... ' + name
+			name = self._gitName(name)
+			if self._verbose:
+				print 'to ... ' + name
 		path += '/'+name
 		path = os.path.abspath(path)
 		#run clone
@@ -109,6 +118,15 @@ class git(object):
 			sys.exit(-1)
 		return path
 
+	def backup(self, url2=''):
+		target = '/tmp/'+self._fname
+		os.system('git clone --bare --mirror '+self._url+' '+target)
+		'''
+		git remote set-url --push origin url2
+		git fetch -p origin
+		git push --mirror
+		'''
+		
 		
 
 ###
@@ -136,6 +154,7 @@ if __name__ == '__main__':
 		if arg.query:
 			print rp.getRemote()
 			rp.status()
+		rp.backup()
 	elif arg.url:
 		rp = git(arg.url, arg.verbose)
 	else:
