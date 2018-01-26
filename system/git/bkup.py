@@ -149,7 +149,29 @@ class git(object):
 		git push --mirror
 		'''
 		
-		
+	#print diff in stdout
+	def diff(self, hashCode=''):
+		if self._cmdPrefix:
+			os.system(self._cmdPrefix+'diff '+hashCode)
+
+
+	def addPrefix(func):
+		def wrapper(self, *args, **kwargs):
+			if self._cmdPrefix:
+				cmd = self._cmdPrefix
+				for arg in args:
+					cmd += ' '+arg
+				print cmd
+				os.system(cmd)
+		return wrapper
+
+
+	#a mean to pass function user want to exec
+	@addPrefix
+	def exec_cmd(self, *args, **kwargs):
+		pass
+
+
 
 ###
 #main
@@ -165,6 +187,10 @@ if __name__ == '__main__':
 			help='query status of local git')
 		parser.add_argument('-u', action='store', dest='url', default='',
 			help='url to remote git')
+		parser.add_argument('-c', action='store', dest='cmd', default='',
+			help='command, optionally arg, for git to exec')
+		parser.add_argument('-l', type=int, action='store', dest='log', default=0,
+			help='number of short comment to show')
 		parser.add_argument('-v', type=int, action='store', dest='verbose', default=0,
 			choices=[0, 1, 2, 3])
 		arg=parser.parse_args()
@@ -178,7 +204,11 @@ if __name__ == '__main__':
 			if db:
 				for remote in db:
 					print remote+' :'+db[remote]
-			rp.status()
+			rp.exec_cmd('status')
+		elif arg.log:
+			rp.log(arg.log)
+		elif arg.cmd:
+			rp.exec_cmd(arg.cmd)
 		#rp.backup()
 	elif arg.url:
 		rp = git(url=arg.url, verbose=arg.verbose)

@@ -2,6 +2,7 @@
 
 """
 Decorator syntax
+	decorattor returns a function and take function as an argument
 """
 
 def p_decorate(func):

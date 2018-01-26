@@ -1,5 +1,11 @@
-name = input('What is your name?\n')
-print("Hi, %s." % name)
+#!/usr/bin/python
+
+import sys
+
+if sys.version_info >= (3,0):
+	name = input('What is your name?\n')
+	print("Hi, %s." % (name))
+
 
 #enter below is ok with windows python 3
 #manu
