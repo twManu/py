@@ -83,14 +83,20 @@ class cPath(manuLib):
 				fList.append(os.path.join(subPath, f))
 		return fList
 
-	def cascade(self, frontPath, rearPath):
-                if frontPath:
-                        if not rearPath: return frontPath
-                else: return rearPath
+	# given fPath and rPath return fPath/rPath
+	# In  : rearPath - rPath
+	#	frontPath - fPath
+	#	         if not provieded, use _pathName as frontPath
+	# Ret : fPath/rPath
+	def cascade(self, rearPath, frontPath=''):
+                if not frontPath:
+			frontPath = self._pathName
+		if not rearPath: return frontPath
                 #both front and rear
                 frontPath = re.sub(r'/$', "", frontPath)
                 rearPath = re.sub(r'^/', "", rearPath)
                 return frontPath+'/'+rearPath
+
 
 #
 # Gievn dev node and optionally mount point

@@ -4,7 +4,7 @@
 # 	sys.path.append(../basic)
 import subprocess, os, sys, re, argparse
 
-class manuLib():
+class manuLib(object):
 	OS_WINDOWS="WINDOWS"
 	OS_MAC="MAC"
 	OS_LINUX="LINUX"
@@ -17,6 +17,13 @@ class manuLib():
 		self._os=sys.platform
 		self._isRoot=False
 		self._debug=debug
+		#check python version
+		if sys.version_info >= (3,0):
+			self._isPython2=sys.version_info
+			self._isPhtyon3=False
+		else:
+			self._isPython2=False
+			self._isPython3=sys.version_info
 		if self._os == 'win32':
 			self._os=self.OS_WINDOWS
 		elif self._os == 'darwin':
@@ -36,13 +43,31 @@ class manuLib():
 		else: print msg,
 
 
+	# msg - message to print before exit
+	#
+	def _exit(self, msg=''):
+		print msg
+		sys.exit(-1)
+
+
 	#
 	# Ret: OS_XXX
 	#
 	def getOS(self):
 		return self._os
 
+	# Ret: False - if python3
+	#      otherwise - sys.version_info return
+	def isPython2(self):
+		return self._isPython2
+
+
+	# Ret: False - if python2
+	#      otherwise - sys.version_info return
+	def isPython3(self):
+		return self._isPython3
 	
+
 	#
 	# Execute command with shell and get iterator of output line
 	#     usage:

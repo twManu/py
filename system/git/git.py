@@ -1,14 +1,10 @@
 #!/usr/bin/python
 
 import re, commands, sys, os, argparse
+sys.path.append('../path')
+from libPath import *
 
-class git(object):
-	#fail and exit with message
-	def _exit(self, msg):
-		print msg
-		sys.exit(-1)
-
-
+class git(manuLib):
 	#init with url or working directory
 	# In  :
 	#	url - first priority check with url
@@ -88,16 +84,12 @@ class git(object):
 	# return absolute path and no trailing /
 	# nor ~
 	def _absPath(self, thePath):
-		if thePath:
-			if re.match(r"~", thePath):
-				thePath=os.path.expanduser(thePath)
-			if os.path.exists(thePath):
-				thePath=os.path.abspath(thePath)
-				return thePath
-		return ''
+		path = cPath(thePath)
+		return path.getPath()
 
 
 	# return name after, excluding, last '/'
+	# empty string returned if no name recognized
 	#
 	def _gitName(self, thePath):
 		name = ''
@@ -116,11 +108,20 @@ class git(object):
 	#	     default is repository name
 	# Ret: path cloned, including repository name
 	def clone(self, cdPath='.', name=''):
+		path = cPath(cdPath)
 		if self._verbose:
 			print 'Cloning', self._url,
-		#todo existence
+		#check existence
+		if not name:
+			name = self._gitName(self._url)
+			if not name:
+				self._exit('unable to get git name')
+		target = path.cascade(name)
+		if os.path.exist(target):
+			ans = raw_input(target+' exists. Delete to continue \(y/n\)?\n')
+			if ans != 'y' and ans != 'Y':
+				self._exit()
 		#comopse command and path
-		path = cdPath
 		cmd = ''
 		if cdPath:
 			cmd += 'cd '+cdPath+';'
