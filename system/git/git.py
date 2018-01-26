@@ -116,29 +116,26 @@ class git(manuLib):
 			name = self._gitName(self._url)
 			if not name:
 				self._exit('unable to get git name')
+			name = name.split('.')[0]
+		if self._verbose:
+			print 'to ... ' + name
 		target = path.cascade(name)
-		if os.path.exist(target):
-			ans = raw_input(target+' exists. Delete to continue \(y/n\)?\n')
+		if os.path.exists(target):
+			ans = raw_input(target+' exists. Delete to continue (y/n)? ')
 			if ans != 'y' and ans != 'Y':
 				self._exit()
+			print 'Deleting...', target
+			os.system('rm -rf '+target)
 		#comopse command and path
 		cmd = ''
 		if cdPath:
 			cmd += 'cd '+cdPath+';'
 		cmd += 'git clone '+self._url
-		if name:
-			cmd += ' '+name
-		else:
-			name = self._gitName(name)
-			if self._verbose:
-				print 'to ... ' + name
-		path += '/'+name
-		path = os.path.abspath(path)
 		#run clone
 		os.system(cmd)
-		if not os.path.isdir(path+'/.git'):
-			self._exit('missing '+path+'/.git')
-		return path
+		if not os.path.isdir(path.cascade('/.git', target)):
+			self._exit('missing '+target+'/.git')
+		return target
 
 
 	def backup(self, url2=''):
