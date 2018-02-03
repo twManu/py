@@ -16,7 +16,8 @@ class git(manuLib):
 	def __init__(self, url='', wdir='.', verbose=0):
 		self._verbose = verbose
 		self._cmdPrefix = ''           #for git command 'cd path; git' XXXX
-		self._branch = []
+		self._branchDB = []
+		self._logDB= []
 		self._remoteDB = {}
 		if url:
 			self._url=url
@@ -54,6 +55,8 @@ class git(manuLib):
 		if self._verbose:
 			print 'git url:', self._url
 			print 'git dir:', self._local
+		self.branch()
+		self._prepareCommit()
 
 
 	# return remote info
@@ -153,28 +156,39 @@ class git(manuLib):
 
 	# Do branch if init'ed
 	# In  : _cmdPrefix
-	#
+	#	_brandDB
 	# Ret : list of branch
 	def branch(self):
-		if self._verbose:
-			print 'collect branches of', self._local
-		if not self._cmdPrefix:
-			return self._branch
-		lines = commands.getoutput(self._cmdPrefix+'branch -a').splitlines()
-		self._branch=[]
-		for line in lines:
-			words = line.split()
-			if re.match(r'\* ', line):
-				self._branch.append(words[1].strip())
-			else:
-				self._branch.append(words[0].strip())
-		return self._branch
+		if not self._branchDB:
+			if self._verbose:
+				print 'collect branches of', self._local
+			if not self._cmdPrefix:
+				return self._branchDB
+			lines = commands.getoutput(self._cmdPrefix+'branch -a').splitlines()
+			for line in lines:
+				words = line.split()
+				if re.match(r'\* ', line):
+					self._branchDB.append(words[1].strip())
+				else:
+					self._branchDB.append(words[0].strip())
+		return self._branchDB
 
+	# Check if valid branch or commit, empty string ok
+	# Ret : True - valid
+	#	False - otherwise
+	def _validHash(self, hashCode):
+		if hashCode:
+			if not hashCode in self._logDB\
+				and not hashCode in self._branchDB:
+					return False
+		return True
 		
+
 	#print diff in stdout
 	def diff(self, hashCode=''):
-		if self._cmdPrefix:
-			os.system(self._cmdPrefix+'diff '+hashCode)
+		if self._validHash(hasCode):
+			self.exec_cmd('diff', hasCode)
+		else: print 'Invalid hash', hashCode
 
 
 	def addPrefix(func):
@@ -186,6 +200,29 @@ class git(manuLib):
 				print cmd
 				os.system(cmd)
 		return wrapper
+
+	# collect commit
+	#In  : _cmdPrefix
+	def _prepareCommit(self):
+		if not self._logDB:
+			lines = commands.getoutput(self._cmdPrefix+'log --oneline').splitlines()
+			for line in lines:
+				if not line: continue
+				words = line.split()
+				self._logDB.append(words[0])
+			
+
+	# query log between given two branches, or current and given branch
+	# In  : br2 - oldhash
+	#	br1 - newhash
+	def log(self, br2, br1=''):
+		if not self._validHash(br2):
+			print 'Invalid hash', br2
+			return None
+		if not self._validHash(br1):
+			print 'Invalid hash', br1
+			return None
+		self.exec_cmd('log ' + br2 + '..' + br1)
 
 
 	#a mean to pass function user want to exec
@@ -211,8 +248,8 @@ if __name__ == '__main__':
 			help='url to remote git')
 		parser.add_argument('-c', action='store', dest='cmd', default='',
 			help='command, optionally arg, for git to exec')
-		parser.add_argument('-l', type=int, action='store', dest='log', default=0,
-			help='number of short comment to show')
+		parser.add_argument('-l', action='store', dest='br2', default='',
+			help='show log between')
 		parser.add_argument('-v', type=int, action='store', dest='verbose', default=0,
 			choices=[0, 1, 2, 3])
 		parser.add_argument('-b', action='store_true', dest='branch', default=False,
@@ -238,8 +275,8 @@ if __name__ == '__main__':
 		rp.exec_cmd('status')
 	elif arg.branch:
 		print rp.branch()
-	elif arg.log:
-		rp.log(arg.log)
+	elif arg.br2:
+		rp.log(arg.br2)
 	elif arg.cmd:
 		rp.exec_cmd(arg.cmd)
 	#rp.backup()
