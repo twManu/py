@@ -6,13 +6,17 @@ from libPath import *
 
 class git(manuLib):
 	#init with url or working directory
+	#   for url, clone to wdir or current directory
+	#   for wdir, 
 	# In  :
 	#	url - first priority check with url
 	#	wdir - working directory, default as current directory
+	#	verbose - message level
 	#
 	def __init__(self, url='', wdir='.', verbose=0):
 		self._verbose = verbose
 		self._cmdPrefix = ''           #for git command 'cd path; git' XXXX
+		self._branch = []
 		self._remoteDB = {}
 		if url:
 			self._url=url
@@ -146,6 +150,26 @@ class git(manuLib):
 		git fetch -p origin
 		git push --mirror
 		'''
+
+	# Do branch if init'ed
+	# In  : _cmdPrefix
+	#
+	# Ret : list of branch
+	def branch(self):
+		if self._verbose:
+			print 'collect branches of', self._local
+		if not self._cmdPrefix:
+			return self._branch
+		lines = commands.getoutput(self._cmdPrefix+'branch -a').splitlines()
+		self._branch=[]
+		for line in lines:
+			words = line.split()
+			if re.match(r'\* ', line):
+				self._branch.append(words[1].strip())
+			else:
+				self._branch.append(words[0].strip())
+		return self._branch
+
 		
 	#print diff in stdout
 	def diff(self, hashCode=''):
@@ -191,25 +215,31 @@ if __name__ == '__main__':
 			help='number of short comment to show')
 		parser.add_argument('-v', type=int, action='store', dest='verbose', default=0,
 			choices=[0, 1, 2, 3])
+		parser.add_argument('-b', action='store_true', dest='branch', default=False,
+			help='show branches')
 		arg=parser.parse_args()
 		return arg
 
 	arg = check_param()
 	if arg.path:
 		rp = git(wdir=arg.path, verbose=arg.verbose)
-		if arg.query:
-			db=rp.getRemote()
-			if db:
-				for remote in db:
-					print remote+' :'+db[remote]
-			rp.exec_cmd('status')
-		elif arg.log:
-			rp.log(arg.log)
-		elif arg.cmd:
-			rp.exec_cmd(arg.cmd)
-		#rp.backup()
 	elif arg.url:
 		rp = git(url=arg.url, verbose=arg.verbose)
 	else:
 		print 'no url provided'
-
+		sys.exit(-1)
+	# do command
+	#
+	if arg.query:
+		db=rp.getRemote()
+		if db:
+			for remote in db:
+				print remote+' :'+db[remote]
+		rp.exec_cmd('status')
+	elif arg.branch:
+		print rp.branch()
+	elif arg.log:
+		rp.log(arg.log)
+	elif arg.cmd:
+		rp.exec_cmd(arg.cmd)
+	#rp.backup()
