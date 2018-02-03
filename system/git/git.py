@@ -174,19 +174,26 @@ class git(manuLib):
 		return self._branchDB
 
 	# Check if valid branch or commit, empty string ok
-	# Ret : True - valid
-	#	False - otherwise
+	#
+	# Ret : None - not match
+	#	empty string - original hashCode
+	#	otherwise - match hasCode
 	def _validHash(self, hashCode):
 		if hashCode:
 			if not hashCode in self._logDB\
 				and not hashCode in self._branchDB:
-					return False
-		return True
+					return hashCode
+			for item in self._logDB:
+				if search(hashCode, item):
+					return item
+			return None
+		return hashCode
 		
 
 	#print diff in stdout
 	def diff(self, hashCode=''):
-		if self._validHash(hasCode):
+		hashCode = self._validHash(hashCode)
+		if None!=hashCode:
 			self.exec_cmd('diff', hasCode)
 		else: print 'Invalid hash', hashCode
 
@@ -212,17 +219,32 @@ class git(manuLib):
 				self._logDB.append(words[0])
 			
 
-	# query log between given two branches, or current and given branch
+	# query log between
+	#  1. two branches
+	#  2. current and given branch
+	#  3. two empty branches with 'oneline' log
 	# In  : br2 - oldhash
 	#	br1 - newhash
-	def log(self, br2, br1=''):
-		if not self._validHash(br2):
-			print 'Invalid hash', br2
-			return None
-		if not self._validHash(br1):
-			print 'Invalid hash', br1
-			return None
-		self.exec_cmd('log ' + br2 + '..' + br1)
+	#	oneline - True or False
+	# Ret : True - command issued
+	#	False - invalid arg
+	def log(self, br2, br1='HEAD', oneline=False):
+		if oneline and not br1 and not br1:
+			cmd = 'log --oneline'
+		else:
+			br2 = self._validHash(br2)
+			if not br2:
+				print 'Invalid hash', br2
+				return False
+			br1 = self._validHash(br1)
+			if not br1:
+				print 'Invalid hash', br1
+				return False
+			cmd = 'log ' + br2 + '..' + br1
+			if oneline:
+				cmd += ' --oneline'
+		self.exec_cmd(cmd)
+		return True
 
 
 	#a mean to pass function user want to exec
@@ -243,7 +265,7 @@ if __name__ == '__main__':
 		parser.add_argument('-d', action='store', dest='path', default='',
 			help='path of local git')
 		parser.add_argument('-q', action='store_true', dest='query', default=False,
-			help='query status of local git')
+			help='query status of local git, if -v, oneline log is shown')
 		parser.add_argument('-u', action='store', dest='url', default='',
 			help='url to remote git')
 		parser.add_argument('-c', action='store', dest='cmd', default='',
@@ -273,6 +295,8 @@ if __name__ == '__main__':
 			for remote in db:
 				print remote+' :'+db[remote]
 		rp.exec_cmd('status')
+		if arg.verbose:
+			rp.log('', '', oneline=True)
 	elif arg.branch:
 		print rp.branch()
 	elif arg.br2:
