@@ -106,8 +106,11 @@ class manuLib(object):
 #
 if __name__ == '__main__':
 	mylib = manuLib()
-	print mylib.getOS()
-	for line in mylib.cmdOutput('ls -l'):
+	if mylib.getOS()==mylib.OS_WINDOWS:
+		cmd = 'dir'
+	else:
+		cmd = 'ls -l'
+	for line in mylib.cmdOutput(cmd):
 		words=line.split()
 		#print len(words)
 		if len(words)>=3:          #ignore statistics
