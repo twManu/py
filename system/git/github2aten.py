@@ -43,4 +43,32 @@ def clone(name):
 		cmdExec(cmd)
 		return
 
-clone('gst-plugins-good-1.6.3.git')
+def check_param():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-r', action='store', dest='repo', default='',
+		help='github repo to move')
+	parser.add_argument('-f', action='store_true', dest='forceAll', default=False,
+		help='do all repo move')
+	parser.add_argument('-q', action='store_true', dest='doQuery', default=False,
+		help='do query db')
+	arg=parser.parse_args()
+	return arg
+
+
+#main
+#
+if __name__ == '__main__':
+	arg = check_param()
+	if arg.doQuery:
+		for key in g_git_pair:
+			print key, g_git_pair[key]
+		sys.exit(0)
+	if arg.repo:
+		clone(arg.repo)
+		sys.exit(0)
+	if arg.forceAll:
+		for key in g_git_pair:
+			name = key.split('/')[1]
+			clone(name)
+		sys.exit(0)
+		
