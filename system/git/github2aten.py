@@ -36,7 +36,8 @@ def clone(name):
 		cmdExec(cmd)
 		cmd = 'git clone --bare --mirror git@10.3.58.47:'+key
 		cmdExec(cmd)
-		cmd = 'cd '+key.split('/')[1]
+		words = key.split('/')
+		cmd = 'cd '+words[len(words)-1]            #the last word of '/'
 		cmd += '; git remote set-url --push origin manuchen@10.0.3.59:'+g_git_pair[key]
 		cmd += '; git fetch -p origin'
 		cmd += '; git push --mirror'
