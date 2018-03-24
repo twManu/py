@@ -1,14 +1,15 @@
 #!/usr/bin/python
 # coding=utf-8
 
-import sys, struct
+import sys, struct, re
 
 # each for an object
 class field(object):
 	#opened file with cur pos for this man
 	#desc contains
-	#   desc['fields'] : tuple of each fieldName
-	#   desc[<fieldName>] : unpack parameter 'B', 'H', 'I', or signed version 'b', 'h', 'i'
+	#   desc['f'] : tuple of each fieldName
+	#   desc['t'] : tuple of type 'B', 'H', 'I', or signed version 'b', 'h', 'i'
+	#               can be 5h
 	#index and name are interpretted by parent
 	def __init__(self, f, fieldDesc, index=0, name=''):
 		self._field = {}
@@ -23,13 +24,38 @@ class field(object):
 			, 'i': 4
 			, 'I': 4
 		}
-		for ff in fieldDesc['fields']:
-			if fieldDesc[ff] in knownType:
-				print 'to read for', ff, knownType[fieldDesc[ff]], 'bytes'
-				self._field[ff] = struct.unpack(fieldDesc[ff],\
-					f.read(knownType[fieldDesc[ff]]))[0]
-			else:
-				raise NameError('unknown field type')
+		if 'f' not in fieldDesc or 't' not in fieldDesc:
+			print 'Missing descriptor'
+			sys.exit(-1)
+		#parsing type descriptor
+		tList = []
+		#single element gets char by literal
+		if type(fieldDesc['t']) is str:
+			n, t = self.checkType(fieldDesc['t'])
+			for j in range(n):
+				tList.append(t)
+		else:
+			for item in fieldDesc['t']:
+				n, t = self.checkType(item)
+				for j in range(n):
+					tList.append(t)
+		for i in range(len(tList)):
+			tp = tList[i]
+			fld = fieldDesc['f'][i]
+			#print 'to read for', fld, knownType[tp], 'bytes'
+			self._field[fld] = struct.unpack(tp, f.read(knownType[tp]))[0]
+			#	raise NameError('unknown field type')
+
+
+	# given 'B', return 1, 'B'
+	# given '3B', return 3, 'B'
+	def checkType(self, desc):
+		match = re.match(r'(\d*)(\D+)', desc)
+		if match.group(1):
+			nr = int(match.group(1))
+		else:
+			nr = 1
+		return nr, match.group(2)
 
 
 	#given key, return value if valid
@@ -75,22 +101,32 @@ class field(object):
 
 #main
 if __name__ == '__main__':
-'''
-	doesn't work w/ Windows
-		'fields': ('忠義', '仁愛', '勇氣'),
-		'忠義': 'B',
-		'仁愛': 'B',
-		'勇氣': 'B'
-'''
+	import pipes, tempfile, struct
 	fDesc = {
-		'fields': ('loyalty', 'mercy', 'courage'),
-		'loyalty': 'B',
-		'mercy': 'B',
-		'courage': 'B'
-	} 
-	with open('test', "rb") as f:
-		#pop offset 16 and '年紀', '國家', '地區', '體力', '體力上限'
-		f.read(16+5)
-		obj = field(f, fDesc)
-		obj.show()
+		'f': ('loyalty', 'mercy', 'courage'),
+		't': ('B', '2B')
+	}
+	fDesc1 = {
+		'f': ('loyalty', 'mercy', 'courage'),
+		't': ('3B')
+	}
+	# Establish a very simple pipeline using stdio
+	p = pipes.Template()
+	#p.append('cat -', '--')
+	#p.debug(True)
+
+	# Establish an input file
+	t = tempfile.NamedTemporaryFile(mode='w')
+	t.write(struct.pack('3B', 1, 2, 3))
+	t.write(struct.pack('3B', 3, 2, 1))
+	t.flush()
+
+	# Pass some text through the pipeline,
+	# saving the output to a temporary file.
+	f = p.open(t.name, 'r')
+	obj = field(f, fDesc1)
+	obj.show()
+
+	obj = field(f, fDesc)
+	obj.show()
 
