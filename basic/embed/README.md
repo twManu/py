@@ -17,3 +17,4 @@ success call:
 	$ ./call_thread py_thread MyThread run
 	# a b look dummy
 	$ ./call_thread_2 py_thread MyThread a b
+	$ ./call_class fakeParsing Parsing getDict

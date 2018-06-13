@@ -54,7 +54,46 @@ int main(int argc, char *argv[])
    
 	if (pValue != NULL) 
     {
-		printf("Return of call : %d\n", PyInt_AsLong(pValue));
+		if( PyDict_Check(pValue) ) {
+    			PyObject *pVal, *pKeys;
+			unsigned int sz;
+
+			pKeys = PyDict_Keys(pValue);
+			sz = PyList_Size(pKeys);
+
+			printf("Return a dictionary w/ %d elements\n", sz);
+			for( int i=0; i<sz; ++i ) {
+				PyObject *pThisKey = PyList_GetItem(pKeys, i);
+				const char *str;
+				if( !pThisKey ) {
+					printf("null key\n");
+					continue;
+				}
+				if( !PyString_Check(pThisKey) ) {
+					printf("not a string key\n");
+					continue;
+				}
+				str = PyString_AsString(pThisKey);
+				pVal = PyDict_GetItem(pValue, pThisKey);
+				if ( pVal ) {
+					if( PyInt_Check(pVal) ) {
+						printf("(int) %s =%d\n", str, PyInt_AsLong(pVal) );
+						Py_DECREF(pVal);
+					} else if( PyDict_Check(pVal) ) {
+						printf("(dict) %s \n", str );
+					} else if( PyList_Check(pVal) ) {
+						printf("(list) %s \n", str );
+					} else if( PyTuple_Check(pVal) ) {
+						printf("(tuple) %s \n", str );
+					} else if( PyString_Check(pVal) ) {
+						printf("(string) %s = %s\n", str, PyString_AsString(pVal) );
+					}
+				} else printf("missing key %s\n", str);
+			}
+			Py_DECREF(pKeys);
+		} else {
+			printf("Return of call : %d\n", PyInt_AsLong(pValue));
+		}
 		Py_DECREF(pValue);
     }
     else 
