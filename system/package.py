@@ -9,7 +9,16 @@ class package(object):
 	# In:
 	#    srcPath - source path (dir), full or relative path to command path
 	#              srcPath=command path if not provided 
+	# Out :
+	#    _srcFullPath - full path of source
+	#    _srcParentPath - full path of parent of source
+	#    _cmdFullPath - full path of where the command is running
+	#    _cmdParentPath - full path the of parent of where the command is running
+	#    _fromJenkins - whether command is running with jenkins context
+	#    _mmdd/_yymmdd - remember the date signature upon running
 	def __init__(self, srcPath='.'):
+		self._mmdd = self.MMDD()
+		self._yymmdd = self.YYMMDD()
 		if not os.path.exists(srcPath):
 			print 'Path', srcPath, 'not exists'
 			self._srcFullPath = None
@@ -26,7 +35,7 @@ class package(object):
 
 
 	def info(self):
-		print self.YYMMDD()
+		print self._yymmdd
 		print 'From Jenkins', self._fromJenkins
 		print 'Full package path', self._srcFullPath
 		print 'Package parent path', self._srcParentPath
