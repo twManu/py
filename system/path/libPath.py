@@ -10,6 +10,11 @@ class cPath(manuLib):
 	TYPE_LINK=1
 	TYPE_FILE=2
 	TYPE_DIR=3
+	typeToName = {
+		TYPE_FILE: "file",
+		TYPE_LINK: "link",
+		TYPE_DIR: "dir"
+	}
 
 	# In  : path - if not provided, use current directory
 	# Out : _parentDir, _pathName, _type
@@ -46,15 +51,9 @@ class cPath(manuLib):
 
 	# Given type, return display name
 	def getTypeName(self, theType):
-		intType=int(theType)
-		if intType == self.TYPE_FILE:
-			return "file"
-		elif intType == self.TYPE_LINK:
-			return "link"
-		elif intType == self.TYPE_DIR:
-			return "dir"
-		else:
-			return "none"
+		if int(theType) in self.typeToName:
+			return self.typeToName[int(theType)]
+		return "none"
 
 
 	# Return path name
