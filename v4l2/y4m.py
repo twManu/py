@@ -9,6 +9,7 @@ class cY4M:
         self._args = None
         self._inFile = None
         self._size = 0
+        self._format = "420"
         self._gotStartHeader = False
         self._gotFrame = False
         if args:
@@ -60,7 +61,7 @@ class cY4M:
             #comment line
             if re.match(r'#(.+)', words[0]):
                 continue
-            print "format=", words[0]
+            print "header=", words[0]
             if words[0]!="YUV4MPEG2":
                 print "error file format"
                 return "Error"
@@ -130,6 +131,10 @@ class cY4M:
                     self.levelPnt(3, value.group(0))
                     if "p"==value.group(1): self.levelPnt(1, "  progressive")
                     else: self.levelPnt(1, "  interlaced")
+                elif 'C'==key:
+                    self.levelPnt(3, value.group(0))
+                    self.levelPnt(1, "  format= "+value.group(1))
+                    self._format = value.group(1)
                 else:
                     self.levelPnt(1, value.group(0))
                     return "Error"

@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+'''
+examples
+gst-launch-1.0 -vvv filesrc location=~/Downloads/Netflix_WindAndNature_4096x2160_60fps_8bit_420.y4m ! y4mdec ! xvimagesink
+ffmpeg -i ~/Downloads/Netflix_WindAndNature_4096x2160_60fps_8bit_420.y4m -pix_fmt yuv444p Netflix_WindAndNature_4096x2160_60fps_8bit_444.y4m
+'''
 import fcntl, os, sys, struct, argparse, commands, re
 from v4l2_def import *
 
