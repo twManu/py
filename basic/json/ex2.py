@@ -7,10 +7,10 @@ dictJson = {
 	, 'key2':2
 }
 
-print 'dictionary :', dictJson
-print 'converted as:'
+print('dictionary :', dictJson)
+print('converted as:')
 strJson=json.dumps(dictJson)
-print strJson
+print(strJson)
 
 
 
